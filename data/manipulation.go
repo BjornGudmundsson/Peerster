@@ -25,3 +25,14 @@ func FormatPeers(peers string) []string {
 	split := strings.Split(peers, ",")
 	return split
 }
+
+//SliceToBoolMap takes an array of strings and
+//returns a map where the keys are the array values
+//and the values are bools
+func SliceToBoolMap(arr []string) map[string]bool {
+	m := make(map[string]bool)
+	for _, val := range arr {
+		m[val] = true
+	}
+	return m
+}

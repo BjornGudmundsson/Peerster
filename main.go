@@ -13,7 +13,7 @@ func main() {
 	name := flag.String("name", "nodeA", "The name of the node")
 	addr := flag.String("gossipAddr", "127.0.0.1", "The home address")
 	peers := flag.String("peers", "127.0.0.1", "The list of peers")
-	simple := flag.Bool("simple", true, "Is is simple")
+	simple := flag.Bool("simple", true, "Is it simple")
 	if *simple {
 	}
 	flag.Parse()

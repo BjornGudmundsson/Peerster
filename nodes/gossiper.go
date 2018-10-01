@@ -15,7 +15,7 @@ type Gossiper struct {
 	address    *net.UDPAddr
 	conn       *net.UDPConn
 	Name       string
-	Neighbours []string
+	Neighbours *data.Neighbours
 }
 
 //NewGossiper is a function that returns a pointer
@@ -30,11 +30,13 @@ func NewGossiper(address, name string, neighbours []string) *Gossiper {
 	if e != nil {
 		log.Fatal(e)
 	}
+	m := data.SliceToBoolMap(neighbours)
+	conN := &data.Neighbours{Neighbours: m}
 	return &Gossiper{
 		Name:       name,
 		address:    udpaddr,
 		conn:       udpconn,
-		Neighbours: neighbours,
+		Neighbours: conN,
 	}
 }
 
@@ -42,29 +44,38 @@ func NewGossiper(address, name string, neighbours []string) *Gossiper {
 //It takes a slice of strings as an argument where every string is of a
 //conventional IPv4 IP address format like address:port
 func (g *Gossiper) SendMessagesToNeighbours(msg string) {
-	for _, ip := range g.Neighbours {
+	for ip := range g.Neighbours.Neighbours {
 		udpaddr, e := net.ResolveUDPAddr("udp4", ip)
 		if e != nil {
 			log.Fatal(e)
 		}
 		fmt.Println(udpaddr.Port)
 		sm := data.NewSimpleMessage(g.Name, msg, ip)
-		packetBytes, _ := protobuf.Encode(sm)
+		gp := &data.GossipPacket{Simple: sm}
+		packetBytes, _ := protobuf.Encode(gp)
 		g.conn.WriteToUDP(packetBytes, udpaddr)
 	}
 }
 
-//This function listens for incoming messages coming
+//ReceiveMessages listens for incoming messages coming
 //in on the UDP connection for this node.
 func (g *Gossiper) ReceiveMessages() {
 	buffer := make([]byte, 1024)
 	conn := g.conn
-	smp := &data.SimpleMessage{}
+	gp := &data.GossipPacket{}
 	for {
 		conn.ReadFromUDP(buffer[:])
-		protobuf.Decode(buffer, smp)
-		fmt.Println((*smp).Contents)
+		protobuf.Decode(buffer, gp)
+		sm := (*gp).Simple
+		go g.handleIncomingMessage(sm)
+
 	}
+}
+
+func (g *Gossiper) handleIncomingMessage(sm *data.SimpleMessage) {
+	fmt.Printf("SIMPLE MESSAGE origin %v from %v content %v \n", sm.OriginalName, sm.RelayPeerAddr, sm.Contents)
+	g.Neighbours.PrintNeighbours()
+	g.Neighbours.AddANeighbour(sm.RelayPeerAddr)
 }
 
 //ClientMessageReceived is a function bound to a pointer to the Gossiper struct.
@@ -84,7 +95,7 @@ func (g *Gossiper) ClientMessageReceived(port int) {
 			fmt.Println(n, e.Error())
 		}
 		protobuf.Decode(packet, temp)
-		fmt.Println(temp.Msg)
+		fmt.Printf("CLIENT MESSAGE: %v", temp.Msg)
 		g.SendMessagesToNeighbours(temp.Msg)
 	}
 }
