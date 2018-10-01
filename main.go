@@ -1,12 +1,11 @@
 package main
 
 import (
-	"CS-438/data"
-	"CS-438/nodes"
 	"flag"
 	"fmt"
-	"strconv"
-	"strings"
+
+	"github.com/BjornGudmundsson/Peerster/data"
+	"github.com/BjornGudmundsson/Peerster/nodes"
 )
 
 func main() {
@@ -18,37 +17,13 @@ func main() {
 	if *simple {
 	}
 	flag.Parse()
-	Name := *name
-	Addr := *addr
-	sp := fmt.Sprintf(":%d", *port)
+	fmt.Println(port)
 	fp := data.FormatPeers(*peers)
-	mainNode := &nodes.Node{
-		Messages:   make([]string, 0),
-		Neighbours: fp,
-		Addr:       Addr,
-		Port:       sp,
-		Name:       Name,
-	}
-	go mainNode.EstablishUDPServer()
-	fmt.Println(fp)
-	for j, por := range fp {
-		i := strings.Index(por, ":")
-		p := por[i:len(por)]
-		fmt.Println(addr)
-		newMessages := make([]string, 0)
-		s := strconv.FormatInt(int64(j), 10)
-		nNode := &nodes.Node{
-			Addr:       por,
-			Messages:   newMessages,
-			Port:       p,
-			Name:       "Node " + s,
-			Neighbours: fp,
-		}
-		fmt.Println(p, "bjorn")
-		go nNode.EstablishUDPServer()
-	}
-	//Hardcoded at first, don't know how they want to handle this
-	go mainNode.HandleClientConnection()
+	g := nodes.NewGossiper(*addr, *name, fp)
+	go g.ReceiveMessages()
+	go g.ClientMessageReceived(*port)
 	for {
+
 	}
+
 }

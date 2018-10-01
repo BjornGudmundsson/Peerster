@@ -1,3 +1,4 @@
 package nodes
 
-//Packages nodes handles all data required of a node in this assignment
+//This package keeps track of all functions and structures related to
+//the nodes or Gossiper whatever you prefer to call it.
