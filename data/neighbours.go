@@ -27,8 +27,9 @@ func (n *Neighbours) AddANeighbour(s string) {
 //while displaying the current neighbours
 func (n *Neighbours) PrintNeighbours() {
 	n.mux.Lock()
+	fmt.Printf("PEERS ")
 	for ip := range n.Neighbours {
-		fmt.Println(ip)
+		fmt.Printf("%v ", ip)
 	}
 	n.mux.Unlock()
 }
