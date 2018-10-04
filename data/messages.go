@@ -1,5 +1,8 @@
 package data
 
+//TextMessage just a way to store a
+//message in a struct so that it can be
+//Serialized and then deserialized.
 type TextMessage struct {
 	Msg string
 }
@@ -23,7 +26,11 @@ func NewSimpleMessage(ogname, msg, relay string) *SimpleMessage {
 }
 
 //GossipPacket is a packet that holds
-//onto a SimpleMessage struct
+//onto a SimpleMessage struct, a rumour in
+//the form of a RumourMessage structu and
+//the corresponding status of the node.
 type GossipPacket struct {
 	Simple *SimpleMessage
+	Rumour *RumourMessage
+	Status *PeerStatus
 }
