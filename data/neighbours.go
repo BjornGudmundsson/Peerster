@@ -31,5 +31,6 @@ func (n *Neighbours) PrintNeighbours() {
 	for ip := range n.Neighbours {
 		fmt.Printf("%v ", ip)
 	}
+	fmt.Printf("\n")
 	n.mux.Unlock()
 }

@@ -17,9 +17,10 @@ func main() {
 	if *simple {
 	}
 	flag.Parse()
-	fmt.Println(port)
 	fp := data.FormatPeers(*peers)
 	g := nodes.NewGossiper(*addr, *name, fp)
+	fmt.Println(fp)
+	fmt.Println(*addr)
 	go g.ReceiveMessages()
 	go g.ClientMessageReceived(*port)
 	for {

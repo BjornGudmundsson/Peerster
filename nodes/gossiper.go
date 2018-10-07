@@ -16,6 +16,8 @@ type Gossiper struct {
 	conn       *net.UDPConn
 	Name       string
 	Neighbours *data.Neighbours
+	Messages   *data.MessageHolder
+	Counter    *data.Counter
 }
 
 //NewGossiper is a function that returns a pointer
@@ -32,29 +34,42 @@ func NewGossiper(address, name string, neighbours []string) *Gossiper {
 	}
 	m := data.SliceToBoolMap(neighbours)
 	conN := &data.Neighbours{Neighbours: m}
+	counter := &data.Counter{}
 	return &Gossiper{
 		Name:       name,
 		address:    udpaddr,
 		conn:       udpconn,
 		Neighbours: conN,
+		Messages:   data.NewMessageHolder(),
+		Counter:    counter,
 	}
 }
 
-//SendMessagesToNeighbours is a function that is bound to a pointer for a gossiper
+//SendRumourMessagesToNeighbours is a function that is bound to a pointer for a gossiper
 //It takes a slice of strings as an argument where every string is of a
 //conventional IPv4 IP address format like address:port
-func (g *Gossiper) SendMessagesToNeighbours(msg string) {
+func (g *Gossiper) SendRumourMessagesToNeighbours(msg string) {
+	id := g.Counter.IncrementAndReturn()
 	for ip := range g.Neighbours.Neighbours {
-		udpaddr, e := net.ResolveUDPAddr("udp4", ip)
-		if e != nil {
-			log.Fatal(e)
+		fmt.Println("The id is ", id)
+		rm := &data.RumourMessage{
+			Origin: g.Name,
+			ID:     id,
+			Text:   msg,
 		}
-		fmt.Println(udpaddr.Port)
-		sm := data.NewSimpleMessage(g.Name, msg, ip)
-		gp := &data.GossipPacket{Simple: sm}
-		packetBytes, _ := protobuf.Encode(gp)
-		g.conn.WriteToUDP(packetBytes, udpaddr)
+		gp := &data.GossipPacket{Rumour: rm}
+		g.sendRumourMessageToNeighbour(gp, ip)
 	}
+}
+
+func (g *Gossiper) sendRumourMessageToNeighbour(msg *data.GossipPacket, addr string) {
+	udpaddr, e := net.ResolveUDPAddr("udp4", addr)
+	if e != nil {
+		log.Fatal(e)
+	}
+	packetbyte, _ := protobuf.Encode(msg)
+	g.conn.WriteToUDP(packetbyte, udpaddr)
+
 }
 
 //ReceiveMessages listens for incoming messages coming
@@ -63,19 +78,14 @@ func (g *Gossiper) ReceiveMessages() {
 	buffer := make([]byte, 1024)
 	conn := g.conn
 	gp := &data.GossipPacket{}
+	gossipChannel := make(chan *data.GossipPacket)
+	go g.delegateMessages(gossipChannel)
 	for {
-		conn.ReadFromUDP(buffer[:])
+		_, addr, _ := conn.ReadFromUDP(buffer[:])
 		protobuf.Decode(buffer, gp)
-		sm := (*gp).Simple
-		go g.handleIncomingMessage(sm)
-
+		go g.Neighbours.AddANeighbour(addr.String())
+		gossipChannel <- gp
 	}
-}
-
-func (g *Gossiper) handleIncomingMessage(sm *data.SimpleMessage) {
-	fmt.Printf("SIMPLE MESSAGE origin %v from %v content %v \n", sm.OriginalName, sm.RelayPeerAddr, sm.Contents)
-	g.Neighbours.PrintNeighbours()
-	g.Neighbours.AddANeighbour(sm.RelayPeerAddr)
 }
 
 //ClientMessageReceived is a function bound to a pointer to the Gossiper struct.
@@ -89,13 +99,12 @@ func (g *Gossiper) ClientMessageReceived(port int) {
 	packet := make([]byte, 1024)
 	temp := &data.TextMessage{}
 	for {
-		fmt.Println(udpAddr.IP.String(), udpAddr.Port)
 		n, _, e := conn.ReadFromUDP(packet)
 		if e != nil {
 			fmt.Println(n, e.Error())
 		}
 		protobuf.Decode(packet, temp)
 		fmt.Printf("CLIENT MESSAGE: %v", temp.Msg)
-		g.SendMessagesToNeighbours(temp.Msg)
+		go g.SendRumourMessagesToNeighbours(temp.Msg)
 	}
 }
