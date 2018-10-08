@@ -18,6 +18,8 @@ type Gossiper struct {
 	Neighbours *data.Neighbours
 	Messages   *data.MessageHolder
 	Counter    *data.Counter
+	Status     map[string]chan *data.GossipPacket
+	Mongering  *Mongerers
 }
 
 //NewGossiper is a function that returns a pointer
@@ -33,7 +35,10 @@ func NewGossiper(address, name string, neighbours []string) *Gossiper {
 		log.Fatal(e)
 	}
 	m := data.SliceToBoolMap(neighbours)
-	conN := &data.Neighbours{Neighbours: m}
+	conN := &data.Neighbours{
+		Neighbours:    m,
+		ArrNeighbours: neighbours,
+	}
 	counter := &data.Counter{}
 	return &Gossiper{
 		Name:       name,
@@ -42,6 +47,8 @@ func NewGossiper(address, name string, neighbours []string) *Gossiper {
 		Neighbours: conN,
 		Messages:   data.NewMessageHolder(),
 		Counter:    counter,
+		Status:     make(map[string]chan *data.GossipPacket),
+		Mongering:  &Mongerers{},
 	}
 }
 
@@ -69,7 +76,6 @@ func (g *Gossiper) sendRumourMessageToNeighbour(msg *data.GossipPacket, addr str
 	}
 	packetbyte, _ := protobuf.Encode(msg)
 	g.conn.WriteToUDP(packetbyte, udpaddr)
-
 }
 
 //ReceiveMessages listens for incoming messages coming
@@ -78,13 +84,17 @@ func (g *Gossiper) ReceiveMessages() {
 	buffer := make([]byte, 1024)
 	conn := g.conn
 	gp := &data.GossipPacket{}
-	gossipChannel := make(chan *data.GossipPacket)
+	gossipChannel := make(chan *GossipAddress)
 	go g.delegateMessages(gossipChannel)
 	for {
 		_, addr, _ := conn.ReadFromUDP(buffer[:])
 		protobuf.Decode(buffer, gp)
 		go g.Neighbours.AddANeighbour(addr.String())
-		gossipChannel <- gp
+		gAddress := &GossipAddress{
+			Addr: addr.String(),
+			Msg:  gp,
+		}
+		gossipChannel <- gAddress
 	}
 }
 

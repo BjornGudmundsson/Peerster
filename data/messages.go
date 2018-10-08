@@ -37,7 +37,7 @@ func NewSimpleMessage(ogname, msg, relay string) *SimpleMessage {
 type GossipPacket struct {
 	Simple *SimpleMessage
 	Rumour *RumourMessage
-	Status *PeerStatus
+	Status *StatusPacket
 }
 
 //MessageHolder Assures a more concurrent access to
@@ -45,6 +45,11 @@ type GossipPacket struct {
 type MessageHolder struct {
 	Messages map[string][]RumourMessage
 	mux      sync.Mutex
+}
+
+//StatusPacket is a holder for PeerStatus messages
+type StatusPacket struct {
+	Want []PeerStatus
 }
 
 //NewMessageHolder returns a pointer to a new MessageHolder
@@ -56,14 +61,42 @@ func NewMessageHolder() *MessageHolder {
 
 //AddAMessage is a message bound to a MessageHolder pointer and allows a concurrent
 //way to add messages.
-func (mh *MessageHolder) AddAMessage(rmsg RumourMessage) {
+func (mh *MessageHolder) AddAMessage(rmsg RumourMessage) bool {
 	mh.mux.Lock()
+	defer mh.mux.Unlock()
 	n := len(mh.Messages[rmsg.Origin])
 	if uint32(n) != rmsg.ID-1 {
-		return
+		return false
 	}
 	mh.Messages[rmsg.Origin] = append(mh.Messages[rmsg.Origin], rmsg)
-	mh.mux.Unlock()
+	return true
+}
+
+//GetMessageVector sends a map where the keys are the
+//origins of the messages and the values with said key
+//are the latest IDs from that origin
+func (mh *MessageHolder) GetMessageVector() map[string]int {
+	mh.mux.Lock()
+	defer mh.mux.Unlock()
+	m := make(map[string]int)
+	for key, val := range mh.Messages {
+		m[key] = len(val)
+	}
+	return m
+}
+
+//CreateStatusPacketFromMessageVector takes in a map that represents a
+//message vector and returns a StatusPacket made out of said message vector
+func CreateStatusPacketFromMessageVector(m map[string]int) *StatusPacket {
+	sp := StatusPacket{}
+	for key, val := range m {
+		ps := PeerStatus{
+			Identifier: key,
+			NextID:     uint32(val),
+		}
+		sp.Want = append(sp.Want, ps)
+	}
+	return &sp
 }
 
 //PrintMessagesForOrigin prints all of the messages that have

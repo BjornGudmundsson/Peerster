@@ -2,14 +2,16 @@ package data
 
 import (
 	"fmt"
+	"math/rand"
 	"sync"
 )
 
 //Neighbours is a struct that allows
 //concurrent access to a list of neighbours
 type Neighbours struct {
-	Neighbours map[string]bool
-	mux        sync.Mutex
+	Neighbours    map[string]bool
+	ArrNeighbours []string
+	mux           sync.Mutex
 }
 
 //AddANeighbour adds a new neighbour to the map
@@ -18,6 +20,7 @@ func (n *Neighbours) AddANeighbour(s string) {
 	n.mux.Lock()
 	if _, ok := n.Neighbours[s]; !ok {
 		n.Neighbours[s] = true
+		n.ArrNeighbours = append(n.ArrNeighbours, s)
 	}
 	n.mux.Unlock()
 }
@@ -33,4 +36,20 @@ func (n *Neighbours) PrintNeighbours() {
 	}
 	fmt.Printf("\n")
 	n.mux.Unlock()
+}
+
+//GetRandomNeighbour is function bound to the neighbours
+//struct and gives you a random neighbour that is not
+//the same as the given address.
+func (n *Neighbours) GetRandomNeighbour(addr string) string {
+	l := len(n.ArrNeighbours)
+	if l < 2 {
+		return ""
+	}
+	for {
+		r := rand.Int() % l
+		if n.ArrNeighbours[r] != addr {
+			return n.ArrNeighbours[r]
+		}
+	}
 }
