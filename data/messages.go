@@ -65,10 +65,18 @@ func (mh *MessageHolder) AddAMessage(rmsg RumourMessage) bool {
 	mh.mux.Lock()
 	defer mh.mux.Unlock()
 	n := len(mh.Messages[rmsg.Origin])
-	if uint32(n) != rmsg.ID-1 {
+	if n == 0 {
+		if rmsg.ID == 1 {
+			mh.Messages[rmsg.Origin] = append(mh.Messages[rmsg.Origin], rmsg)
+		}
+		return true
+	}
+	if rmsg.ID <= uint32(n) {
 		return false
 	}
-	mh.Messages[rmsg.Origin] = append(mh.Messages[rmsg.Origin], rmsg)
+	if uint32(n) == rmsg.ID+1 {
+		mh.Messages[rmsg.Origin] = append(mh.Messages[rmsg.Origin], rmsg)
+	}
 	return true
 }
 
@@ -83,6 +91,25 @@ func (mh *MessageHolder) GetMessageVector() map[string]int {
 		m[key] = len(val)
 	}
 	return m
+}
+
+//NeedMsgs gives a status packet of the messages this node is missing
+//according to the given statusPacket
+func (mh *MessageHolder) NeedMsgs(sp StatusPacket) StatusPacket {
+	want := sp.Want
+	messages := mh.GetMessageVector()
+	sp2 := StatusPacket{}
+	for _, ps := range want {
+		msgs := messages[ps.Identifier]
+		if ps.NextID > uint32(msgs) {
+			p := PeerStatus{
+				Identifier: ps.Identifier,
+				NextID:     uint32(msgs + 1),
+			}
+			sp2.Want = append(sp.Want, p)
+		}
+	}
+	return sp2
 }
 
 //CreateStatusPacketFromMessageVector takes in a map that represents a

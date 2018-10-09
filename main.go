@@ -2,7 +2,6 @@ package main
 
 import (
 	"flag"
-	"fmt"
 
 	"github.com/BjornGudmundsson/Peerster/data"
 	"github.com/BjornGudmundsson/Peerster/nodes"
@@ -19,8 +18,6 @@ func main() {
 	flag.Parse()
 	fp := data.FormatPeers(*peers)
 	g := nodes.NewGossiper(*addr, *name, fp)
-	fmt.Println(fp)
-	fmt.Println(*addr)
 	go g.ReceiveMessages()
 	go g.ClientMessageReceived(*port)
 	for {

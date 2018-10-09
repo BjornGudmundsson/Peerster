@@ -18,6 +18,7 @@ func (g *Gossiper) delegateMessages(ch chan *GossipAddress) {
 			}
 			if msg.Msg.Status != nil {
 				go g.handleStatusMessage(msg)
+				go g.SendMessageVector()
 			}
 		}
 	}
@@ -33,23 +34,52 @@ func (g *Gossiper) handleRumourMessage(msg *GossipAddress) {
 	mh := g.Messages
 	relay := msg.Addr
 	newMsg := mh.AddAMessage(*msg.Msg.Rumour)
-	//mh.PrintMessagesForOrigin(msg.Msg.Rumour.Origin)
-	if g.Mongering.HasMongerer(relay) {
+	//fmt.Println("Rumour from ", relay)
+	mh.PrintMessagesForOrigin(msg.Msg.Rumour.Origin)
+
+	//Ignore all messages that are not from the person
+	//I am mongering with
+	if g.Status.IsMongering {
+		fmt.Println("I am rumor mongering")
 		return
 	}
-	if newMsg {
+	fmt.Println("new msg", newMsg, "and is mongering ", g.Status.IsMongering)
+	if newMsg && !g.Status.IsMongering {
 		msgVector := g.Messages.GetMessageVector()
 		sp := data.CreateStatusPacketFromMessageVector(msgVector)
-		fmt.Println(sp)
 		gp := &data.GossipPacket{
 			Status: sp,
 		}
 		go g.sendRumourMessageToNeighbour(gp, relay)
-		fmt.Println("sending to this address ", relay)
 		go g.rumourMongering(msg)
 	}
 }
 
 func (g *Gossiper) handleStatusMessage(msg *GossipAddress) {
-	fmt.Println("Status message")
+	addr := msg.Addr
+	mongerAddr := g.Status.GetIP()
+	if g.Status.IsMongering && addr == mongerAddr {
+		g.Status.StatusChannel <- msg
+		return
+	}
+	fmt.Println("got a random status message ", msg.Addr)
+}
+
+//SendMessageVector is a function that waits for a
+//statuspacket and sends it
+func (g *Gossiper) SendMessageVector() {
+	for {
+		select {
+		case vector := <-g.Status.StatusChannel:
+			gaddr := vector.Msg
+			addr := vector.Addr
+			needMsgs := g.Messages.NeedMsgs(*gaddr.Status)
+			fmt.Println("Messages I need", needMsgs)
+			gp := &data.GossipPacket{
+				Status: &needMsgs,
+			}
+			g.sendRumourMessageToNeighbour(gp, addr)
+
+		}
+	}
 }

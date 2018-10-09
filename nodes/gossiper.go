@@ -18,7 +18,7 @@ type Gossiper struct {
 	Neighbours *data.Neighbours
 	Messages   *data.MessageHolder
 	Counter    *data.Counter
-	Status     map[string]chan *data.GossipPacket
+	Status     *Status
 	Mongering  *Mongerers
 }
 
@@ -39,6 +39,11 @@ func NewGossiper(address, name string, neighbours []string) *Gossiper {
 		Neighbours:    m,
 		ArrNeighbours: neighbours,
 	}
+	status := &Status{
+		IP:            "",
+		IsMongering:   false,
+		StatusChannel: make(chan *GossipAddress),
+	}
 	counter := &data.Counter{}
 	return &Gossiper{
 		Name:       name,
@@ -47,7 +52,7 @@ func NewGossiper(address, name string, neighbours []string) *Gossiper {
 		Neighbours: conN,
 		Messages:   data.NewMessageHolder(),
 		Counter:    counter,
-		Status:     make(map[string]chan *data.GossipPacket),
+		Status:     status,
 		Mongering:  &Mongerers{},
 	}
 }
@@ -108,13 +113,28 @@ func (g *Gossiper) ClientMessageReceived(port int) {
 	conn, _ := net.ListenUDP("udp4", udpAddr)
 	packet := make([]byte, 1024)
 	temp := &data.TextMessage{}
+
 	for {
+		id := g.Counter.IncrementAndReturn()
 		n, _, e := conn.ReadFromUDP(packet)
 		if e != nil {
 			fmt.Println(n, e.Error())
 		}
 		protobuf.Decode(packet, temp)
 		fmt.Printf("CLIENT MESSAGE: %v", temp.Msg)
-		go g.SendRumourMessagesToNeighbours(temp.Msg)
+		rm := &data.RumourMessage{
+			Origin: g.Name,
+			ID:     id,
+			Text:   temp.Msg,
+		}
+		gp := &data.GossipPacket{
+			Rumour: rm,
+		}
+		ga := &GossipAddress{
+			Addr: g.address.String(),
+			Msg:  gp,
+		}
+		fmt.Println("Starting to rumor monger")
+		go g.rumourMongering(ga)
 	}
 }

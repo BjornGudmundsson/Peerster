@@ -2,6 +2,7 @@ package nodes
 
 import (
 	"fmt"
+	"math/rand"
 	"sync"
 	"time"
 )
@@ -38,23 +39,42 @@ func (m *Mongerers) HasMongerer(addr string) bool {
 }
 
 func (g *Gossiper) rumourMongering(msg *GossipAddress) {
+	usedPeers := make(map[string]bool)
 	peers := g.Neighbours
 	addr := msg.Addr
+	usedPeers[addr] = true
 	//Picking a random peer
-	peer := peers.GetRandomNeighbour(addr)
-	fmt.Println(peer)
-}
-
-func (g *Gossiper) sendRumourToPeer(msg *GossipAddress, peer string) {
-	rumour := msg.Msg
-	g.sendRumourMessageToNeighbour(rumour, peer)
-	status := g.Status
-	status.ChangeStatus(peer)
+	peer := peers.GetRandomNeighbour(usedPeers)
+	g.Status.ChangeStatus(peer)
+	go g.sendRumourMessageToNeighbour(msg.Msg, peer)
 	time.Sleep(1 * time.Second)
-	select {
-	case sp := <-status.StatusChannel:
-		fmt.Println(sp.Want)
-	default:
-		fmt.Println("Timeout")
+	var brk bool
+	for {
+		if brk {
+			break
+		}
+		select {
+		case sp := <-g.Status.StatusChannel:
+			fmt.Println("Got a message, babe ", sp)
+			return
+		default:
+			coin := rand.Int() % 2
+			if coin == 0 {
+				fmt.Println("Coin flip said stop")
+				g.Status.StopMongering()
+				brk = true
+			} else {
+				fmt.Println("coin flip said continue")
+				usedPeers[peer] = true
+				nPeer := peers.GetRandomNeighbour(usedPeers)
+				g.Status.ChangeStatus(nPeer)
+				if nPeer == "" {
+					brk = true
+					fmt.Println("No more neighbours")
+					g.Status.StopMongering()
+				}
+			}
+		}
 	}
+	fmt.Println("Stopped mongering")
 }
