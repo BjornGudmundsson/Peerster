@@ -6,7 +6,7 @@ import (
 	"github.com/BjornGudmundsson/Peerster/data"
 )
 
-func (g *Gossiper) delegateMessages(ch chan *GossipAddress) {
+func (g *Gossiper) delegateMessages(ch chan GossipAddress) {
 	for {
 		select {
 		case msg := <-ch:
@@ -17,69 +17,102 @@ func (g *Gossiper) delegateMessages(ch chan *GossipAddress) {
 				go g.handleRumourMessage(msg)
 			}
 			if msg.Msg.Status != nil {
+				fmt.Println(msg.Msg.Status)
 				go g.handleStatusMessage(msg)
-				go g.SendMessageVector()
+				//go g.SendMessageVector()
 			}
 		}
 	}
 }
 
-func (g *Gossiper) handleSimpleMessage(msg *GossipAddress) {
+func (g *Gossiper) handleSimpleMessage(msg GossipAddress) {
 	g.Neighbours.PrintNeighbours()
 	sm := *msg.Msg.Simple
 	fmt.Printf("SIMPLE MESSAGE origin %v from %v content %v \n", sm.OriginalName, sm.RelayPeerAddr, sm.Contents)
 }
 
-func (g *Gossiper) handleRumourMessage(msg *GossipAddress) {
-	mh := g.Messages
-	relay := msg.Addr
-	newMsg := mh.AddAMessage(*msg.Msg.Rumour)
-	//fmt.Println("Rumour from ", relay)
-	mh.PrintMessagesForOrigin(msg.Msg.Rumour.Origin)
+func (g *Gossiper) handleRumourMessage(msg GossipAddress) {
 
-	//Ignore all messages that are not from the person
-	//I am mongering with
+	gp := msg.Msg
+	addr := msg.Addr
+	rm := *gp.Rumour
+	fmt.Printf("\n RUMOR origin %v from %v ID %v contents %v \n", rm.Origin, addr, rm.ID, rm.Text)
 	if g.Status.IsMongering {
-		fmt.Println("I am rumor mongering")
+		if addr == g.Status.GetIP() {
+			g.Mongering.Ch <- rm
+		}
 		return
 	}
-	fmt.Println("new msg", newMsg, "and is mongering ", g.Status.IsMongering)
-	if newMsg && !g.Status.IsMongering {
-		msgVector := g.Messages.GetMessageVector()
-		sp := data.CreateStatusPacketFromMessageVector(msgVector)
-		gp := &data.GossipPacket{
-			Status: sp,
+	isNew := g.Messages.CheckIfMsgIsNew(rm)
+	if isNew {
+		g.Messages.AddAMessage(rm)
+		g.Messages.PrintMessagesForOrigin(rm.Origin)
+		myMsgs := g.Messages.GetMessageVector()
+		sp := data.GetStatusPacketFromVector(myMsgs)
+		ngp := data.GossipPacket{
+			Status: &sp,
 		}
-		go g.sendRumourMessageToNeighbour(gp, relay)
-		go g.rumourMongering(msg)
+		go g.sendMessageToNeighbour(&ngp, addr)
+		g.rumourMongering(&msg)
 	}
+
 }
 
-func (g *Gossiper) handleStatusMessage(msg *GossipAddress) {
+//CheckIfUpToDate is a function that takes in a map that
+//corresponds to a StatusPacket and returns if there are
+//messages that this gossiper has not seen.
+func (g *Gossiper) CheckIfUpToDate(m map[string]uint32) bool {
+	messages := g.Messages.Messages
+	for key, val := range m {
+		msgs, ok := messages[key]
+		if !ok {
+			return false
+		}
+		n := len(msgs)
+		if uint32(n) < val {
+			return false
+		}
+	}
+	return true
+}
+
+func (g *Gossiper) handleStatusMessage(msg GossipAddress) {
+	PrintStatusPacket(msg)
 	addr := msg.Addr
-	mongerAddr := g.Status.GetIP()
-	if g.Status.IsMongering && addr == mongerAddr {
+	m := msg.Msg
+	smap := TurnStatusIntoMap(*m.Status)
+	fmt.Println(smap)
+	upToDate := g.CheckIfUpToDate(smap)
+	if upToDate {
+		fmt.Printf("\n IN SYNC WITH %v \n", addr)
+	}
+	if addr == g.Status.GetIP() {
 		g.Status.StatusChannel <- msg
 		return
 	}
-	fmt.Println("got a random status message ", msg.Addr)
+	//Now I know that this status packet does not come from
+	//someone I am mongering with. That means this status
+	//packet is asking for messages
+	go g.SendMessageThatPeerNeeds(msg)
+
 }
 
-//SendMessageVector is a function that waits for a
-//statuspacket and sends it
-func (g *Gossiper) SendMessageVector() {
-	for {
-		select {
-		case vector := <-g.Status.StatusChannel:
-			gaddr := vector.Msg
-			addr := vector.Addr
-			needMsgs := g.Messages.NeedMsgs(*gaddr.Status)
-			fmt.Println("Messages I need", needMsgs)
-			gp := &data.GossipPacket{
-				Status: &needMsgs,
-			}
-			g.sendRumourMessageToNeighbour(gp, addr)
-
-		}
+//PrintStatusPacket prints a StatusPacket
+//in a very particular format.
+func PrintStatusPacket(ga GossipAddress) {
+	fmt.Printf("STATUS from %v ", ga.Addr)
+	sp := ga.Msg.Status
+	for _, ps := range sp.Want {
+		fmt.Printf("peer %v NextID %v ", ps.Identifier, ps.NextID)
 	}
+}
+
+//TurnStatusIntoMap takes a StatusPacket and returns a
+//map that conveys the same information
+func TurnStatusIntoMap(sp data.StatusPacket) map[string]uint32 {
+	m := make(map[string]uint32)
+	for _, ps := range sp.Want {
+		m[ps.Identifier] = ps.NextID
+	}
+	return m
 }

@@ -59,25 +59,40 @@ func NewMessageHolder() *MessageHolder {
 	}
 }
 
-//AddAMessage is a message bound to a MessageHolder pointer and allows a concurrent
-//way to add messages.
-func (mh *MessageHolder) AddAMessage(rmsg RumourMessage) bool {
+//CheckIfMsgIsNew takes in a rumour message and checks if the
+//messageholder has a copy of that message already.
+func (mh *MessageHolder) CheckIfMsgIsNew(rmsg RumourMessage) bool {
 	mh.mux.Lock()
 	defer mh.mux.Unlock()
-	n := len(mh.Messages[rmsg.Origin])
+	og := rmsg.Origin
+	id := rmsg.ID
+	originMsgs := mh.Messages[og]
+	n := len(originMsgs)
 	if n == 0 {
-		if rmsg.ID == 1 {
-			mh.Messages[rmsg.Origin] = append(mh.Messages[rmsg.Origin], rmsg)
-		}
 		return true
 	}
-	if rmsg.ID <= uint32(n) {
-		return false
+	//The messages should be in order.
+	//We are working with that assumption.
+	latestMsg := originMsgs[n-1]
+	if id > latestMsg.ID {
+		return true
 	}
-	if uint32(n) == rmsg.ID+1 {
-		mh.Messages[rmsg.Origin] = append(mh.Messages[rmsg.Origin], rmsg)
+	return false
+}
+
+//AddAMessage is a message bound to a MessageHolder pointer and allows a concurrent
+//way to add messages.
+func (mh *MessageHolder) AddAMessage(rmsg RumourMessage) {
+	mh.mux.Lock()
+	og := rmsg.Origin
+	id := rmsg.ID
+	msgs := mh.Messages[og]
+	n := len(msgs)
+	if id == uint32(n+1) {
+		msgs = append(msgs, rmsg)
 	}
-	return true
+	mh.Messages[og] = msgs
+	mh.mux.Unlock()
 }
 
 //GetMessageVector sends a map where the keys are the
@@ -86,9 +101,13 @@ func (mh *MessageHolder) AddAMessage(rmsg RumourMessage) bool {
 func (mh *MessageHolder) GetMessageVector() map[string]int {
 	mh.mux.Lock()
 	defer mh.mux.Unlock()
+	messages := mh.Messages
 	m := make(map[string]int)
-	for key, val := range mh.Messages {
-		m[key] = len(val)
+	for key, arr := range messages {
+		//The array is has up to this message
+		//I am assuming that it is in order.
+		//Fx that ID nr i comes before Id nr i + 1
+		m[key] = len(arr) + 1
 	}
 	return m
 }
@@ -96,18 +115,32 @@ func (mh *MessageHolder) GetMessageVector() map[string]int {
 //NeedMsgs gives a status packet of the messages this node is missing
 //according to the given statusPacket
 func (mh *MessageHolder) NeedMsgs(sp StatusPacket) StatusPacket {
-	want := sp.Want
-	messages := mh.GetMessageVector()
+	mh.mux.Lock()
+	defer mh.mux.Unlock()
 	sp2 := StatusPacket{}
+	want := sp.Want
+	messages := mh.Messages
 	for _, ps := range want {
-		msgs := messages[ps.Identifier]
-		if ps.NextID > uint32(msgs) {
-			p := PeerStatus{
-				Identifier: ps.Identifier,
-				NextID:     uint32(msgs + 1),
+		id := ps.Identifier
+		nxt := ps.NextID
+		msgs, ok := messages[id]
+		if !ok {
+			ps := PeerStatus{
+				Identifier: id,
+				NextID:     uint32(1),
 			}
-			sp2.Want = append(sp.Want, p)
+			sp2.Want = append(sp2.Want, ps)
+			continue
 		}
+		n := len(msgs)
+		if uint32(n) >= nxt {
+			continue
+		}
+		ps := PeerStatus{
+			Identifier: id,
+			NextID:     uint32(n + 1),
+		}
+		sp2.Want = append(sp2.Want, ps)
 	}
 	return sp2
 }
@@ -136,4 +169,27 @@ func (mh *MessageHolder) PrintMessagesForOrigin(origin string) {
 		fmt.Printf("%v and the ID is %v", msg.Text, msg.ID)
 	}
 	mh.mux.Unlock()
+}
+
+func (mh *MessageHolder) PrintMessages() {
+	for _, val := range mh.Messages {
+		for _, msg := range val {
+			fmt.Printf(" %v ", msg)
+		}
+		fmt.Println()
+	}
+}
+
+//GetStatusPacketFromVector takes in a map that represent a
+//message vector and turns it into a StatusPacket
+func GetStatusPacketFromVector(m map[string]int) StatusPacket {
+	sp := StatusPacket{}
+	for key, val := range m {
+		ps := PeerStatus{
+			Identifier: key,
+			NextID:     uint32(val),
+		}
+		sp.Want = append(sp.Want, ps)
+	}
+	return sp
 }

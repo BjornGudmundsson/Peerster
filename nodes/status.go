@@ -11,7 +11,7 @@ import (
 type Status struct {
 	IP            string
 	IsMongering   bool
-	StatusChannel chan *GossipAddress
+	StatusChannel chan GossipAddress
 	mux           sync.Mutex
 }
 

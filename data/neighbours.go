@@ -38,25 +38,17 @@ func (n *Neighbours) PrintNeighbours() {
 	n.mux.Unlock()
 }
 
-//GetRandomNeighbour is function bound to the neighbours
-//struct and gives you a random neighbour that is not
-//the same as the given address.
-func (n *Neighbours) GetRandomNeighbour(addr map[string]bool) string {
-	n.mux.Lock()
-	defer n.mux.Unlock()
+//RandomIndexOutOfNeighbours returns a random neighbour that has not been used
+func (n *Neighbours) RandomIndexOutOfNeighbours(used map[string]bool) string {
 	l := len(n.ArrNeighbours)
-	keys := len(addr)
-	if keys >= l {
+	if len(used) > l {
 		return ""
 	}
-	if l < 2 {
-		return ""
-	}
-	for i := 0; i < l; i++ {
+	for {
 		ran := rand.Int() % l
-		if _, ok := addr[n.ArrNeighbours[ran]]; !ok {
-			return n.ArrNeighbours[ran]
+		neighbour := n.ArrNeighbours[ran]
+		if _, ok := used[neighbour]; !ok {
+			return neighbour
 		}
 	}
-	return ""
 }
