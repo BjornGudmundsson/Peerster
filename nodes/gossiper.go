@@ -20,6 +20,7 @@ type Gossiper struct {
 	Counter    *data.Counter
 	Status     *Status
 	Mongering  MongererMessages
+	enPeer     *EntropyPeer
 }
 
 //NewGossiper is a function that returns a pointer
@@ -57,6 +58,7 @@ func NewGossiper(address, name string, neighbours []string) *Gossiper {
 		Counter:    counter,
 		Status:     status,
 		Mongering:  mong,
+		enPeer:     &EntropyPeer{},
 	}
 }
 

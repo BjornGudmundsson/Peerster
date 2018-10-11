@@ -171,6 +171,8 @@ func (mh *MessageHolder) PrintMessagesForOrigin(origin string) {
 	mh.mux.Unlock()
 }
 
+//PrintMessages prints all of the messages
+//in a specific format.
 func (mh *MessageHolder) PrintMessages() {
 	for _, val := range mh.Messages {
 		for _, msg := range val {

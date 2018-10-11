@@ -17,9 +17,7 @@ func (g *Gossiper) delegateMessages(ch chan GossipAddress) {
 				go g.handleRumourMessage(msg)
 			}
 			if msg.Msg.Status != nil {
-				fmt.Println(msg.Msg.Status)
 				go g.handleStatusMessage(msg)
-				//go g.SendMessageVector()
 			}
 		}
 	}
@@ -36,6 +34,7 @@ func (g *Gossiper) handleRumourMessage(msg GossipAddress) {
 	gp := msg.Msg
 	addr := msg.Addr
 	rm := *gp.Rumour
+	enPeer := g.enPeer.EntropyPeer
 	fmt.Printf("\n RUMOR origin %v from %v ID %v contents %v \n", rm.Origin, addr, rm.ID, rm.Text)
 	if g.Status.IsMongering {
 		if addr == g.Status.GetIP() {
@@ -52,7 +51,9 @@ func (g *Gossiper) handleRumourMessage(msg GossipAddress) {
 		ngp := data.GossipPacket{
 			Status: &sp,
 		}
-		go g.sendMessageToNeighbour(&ngp, addr)
+		if addr != enPeer {
+			go g.sendMessageToNeighbour(&ngp, addr)
+		}
 		g.rumourMongering(&msg)
 	}
 
@@ -69,7 +70,13 @@ func (g *Gossiper) CheckIfUpToDate(m map[string]uint32) bool {
 			return false
 		}
 		n := len(msgs)
-		if uint32(n) < val {
+		if uint32(n) != val-1 {
+			return false
+		}
+	}
+	for key := range messages {
+		_, ok := m[key]
+		if !ok {
 			return false
 		}
 	}
@@ -85,16 +92,17 @@ func (g *Gossiper) handleStatusMessage(msg GossipAddress) {
 	upToDate := g.CheckIfUpToDate(smap)
 	if upToDate {
 		fmt.Printf("\n IN SYNC WITH %v \n", addr)
+		return
 	}
 	if addr == g.Status.GetIP() {
 		g.Status.StatusChannel <- msg
 		return
 	}
+
 	//Now I know that this status packet does not come from
 	//someone I am mongering with. That means this status
 	//packet is asking for messages
-	go g.SendMessageThatPeerNeeds(msg)
-
+	g.SendMessageThatPeerNeeds(msg)
 }
 
 //PrintStatusPacket prints a StatusPacket

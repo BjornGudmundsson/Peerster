@@ -25,6 +25,16 @@ func (g *Gossiper) SendMessageThatPeerNeeds(ga GossipAddress) {
 			}
 			g.sendMessageToNeighbour(gp, addr)
 		}
-
+	}
+	msp := TurnStatusIntoMap(*sp)
+	for key, val := range messages {
+		if _, ok := msp[key]; !ok {
+			for _, rm := range val {
+				gp := &data.GossipPacket{
+					Rumour: &rm,
+				}
+				g.sendMessageToNeighbour(gp, addr)
+			}
+		}
 	}
 }
