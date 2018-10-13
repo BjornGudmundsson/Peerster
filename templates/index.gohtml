@@ -1,0 +1,28 @@
+<!doctype html>
+
+  <html lang="en">
+  <head>
+    <meta charset="utf-8">
+
+    <title>The HTML5 Herald</title>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+
+  </head>
+
+    <body>
+      <h1> Hello, {{.Name}} </h1>
+
+      <form method="post" action="/AddMessage" id="messageForm">
+        <input name="text" id="text" value="text" type="text">
+        <br>
+        <Button type="submit" >Send message</button>
+      </form>
+
+      <Button id="messageButton"> Get messages </Button>
+      <button id="clear"> Clear dom </button>
+      <div id="container">
+
+      </div>
+      <script src="/GetIndexJS"></script>
+    </body>
+  </html>

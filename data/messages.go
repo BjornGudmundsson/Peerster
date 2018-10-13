@@ -195,3 +195,15 @@ func GetStatusPacketFromVector(m map[string]int) StatusPacket {
 	}
 	return sp
 }
+
+func (mh *MessageHolder) GetMessageString() string {
+	var s string
+	for _, val := range mh.Messages {
+		for _, rm := range val {
+			temp := fmt.Sprintf("Origin %v ID %v Content %v", rm.Origin, rm.ID, rm.Text)
+			s += temp
+		}
+		s += "\n"
+	}
+	return s
+}

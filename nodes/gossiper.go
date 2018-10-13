@@ -21,12 +21,13 @@ type Gossiper struct {
 	Status     *Status
 	Mongering  MongererMessages
 	enPeer     *EntropyPeer
+	UIPort     int
 }
 
 //NewGossiper is a function that returns a pointer
 //to a new instance of a Gossiper with an active
 //UDP connection to the specified address.
-func NewGossiper(address, name string, neighbours []string) *Gossiper {
+func NewGossiper(address, name string, neighbours []string, p int) *Gossiper {
 	udpaddr, e := net.ResolveUDPAddr("udp4", address)
 	if e != nil {
 		log.Fatal(e)
@@ -59,6 +60,7 @@ func NewGossiper(address, name string, neighbours []string) *Gossiper {
 		Status:     status,
 		Mongering:  mong,
 		enPeer:     &EntropyPeer{},
+		UIPort:     p,
 	}
 }
 
@@ -124,7 +126,6 @@ func (g *Gossiper) ClientMessageReceived(port int) {
 			Addr: g.address.String(),
 			Msg:  gp,
 		}
-		fmt.Println("Starting to rumor monger")
 		go g.rumourMongering(ga)
 	}
 }

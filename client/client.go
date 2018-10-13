@@ -14,13 +14,13 @@ import (
 func main() {
 	UIPort := flag.Int("UIPort", 8080, "This is the port for the user client")
 	msg := flag.String("msg", "Hello", "A message to be sent")
+	ip := flag.String("ip", "127.0.0.1", "default IP address ")
 	flag.Parse()
 	fmt.Println(*UIPort, *msg)
-	sendMessage(*UIPort, *msg)
+	sendMessage(*UIPort, *msg, *ip)
 }
 
-func sendMessage(port int, msg string) {
-	ip := "127.0.0.1"
+func sendMessage(port int, msg string, ip string) {
 	s := fmt.Sprintf("%v:%v", ip, port)
 	/*udpAddr, e := net.ResolveUDPAddr("udp4", s)
 	if e != nil {
