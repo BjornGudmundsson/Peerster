@@ -43,8 +43,9 @@ type GossipPacket struct {
 //MessageHolder Assures a more concurrent access to
 //stored messages.
 type MessageHolder struct {
-	Messages map[string][]RumourMessage
-	mux      sync.Mutex
+	Messages     map[string][]RumourMessage
+	messageArray []RumourMessage
+	mux          sync.Mutex
 }
 
 //StatusPacket is a holder for PeerStatus messages
@@ -89,6 +90,7 @@ func (mh *MessageHolder) AddAMessage(rmsg RumourMessage) {
 	msgs := mh.Messages[og]
 	n := len(msgs)
 	if id == uint32(n+1) {
+		mh.messageArray = append(mh.messageArray, rmsg)
 		msgs = append(msgs, rmsg)
 	}
 	mh.Messages[og] = msgs
@@ -206,4 +208,8 @@ func (mh *MessageHolder) GetMessageString() string {
 		s += "\n"
 	}
 	return s
+}
+
+func (mh *MessageHolder) GetMessagesInOrder() []RumourMessage {
+	return mh.messageArray
 }

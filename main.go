@@ -20,7 +20,7 @@ func main() {
 	g := nodes.NewGossiper(*addr, *name, fp, *port)
 	go g.ReceiveMessages()
 	go g.ClientMessageReceived(*port)
-	go g.TCPServer(*port + 1)
+	go g.TCPServer(8080)
 	go g.AntiEntropy()
 	for {
 	}

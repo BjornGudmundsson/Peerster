@@ -10,6 +10,7 @@ func (g *Gossiper) delegateMessages(ch chan GossipAddress) {
 	for {
 		select {
 		case msg := <-ch:
+			g.Neighbours.PrintNeighbours()
 			if msg.Msg.Simple != nil {
 				go g.handleSimpleMessage(msg)
 			}

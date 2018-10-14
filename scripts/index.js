@@ -7,20 +7,20 @@ messageButton.addEventListener("click", async (e) => {
         url : '/GetMessages',
         method : 'get',
         success : (data) => {
-            console.log(data);
             container.innerHTML = "";
             container.innerHTML = data
         }
     });
 });
 
-$("#messageForm").submit((e)=>{
-    $ajax({
-        type : "POST",
-        url : "/AddMessage",
-        data : {
-            text : $(this).text.value
+$('#messageForm').submit(function(e){
+    e.preventDefault();
+    $.ajax({
+        url:'/AddMessage',
+        type:'post',
+        data:$('#messageForm').serialize(),
+        success:function(){
+            //whatever you wanna do after the form is successfully submitted
         }
     });
-    return false;
 });

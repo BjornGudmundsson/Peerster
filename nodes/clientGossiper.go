@@ -6,7 +6,6 @@ import (
 	"log"
 	"net"
 	"net/http"
-	"os"
 
 	"github.com/BjornGudmundsson/Peerster/data"
 	"github.com/dedis/protobuf"
@@ -23,7 +22,6 @@ func (g *Gossiper) TCPServer(port int) {
 func (g *Gossiper) ServeHTTP(wr http.ResponseWriter, req *http.Request) {
 	tpl = template.Must(template.ParseGlob("./templates/*.gohtml"))
 	route := req.URL.Path
-	fmt.Println(route)
 	if route == "/index" {
 		g.GetIndexPage(wr, req)
 		return
@@ -65,37 +63,12 @@ func (g *Gossiper) GetIndexJS(wr http.ResponseWriter, req *http.Request) {
 //GetMessages sends
 func (g *Gossiper) GetMessages(wr http.ResponseWriter, req *http.Request) {
 	//messages := g.Messages.GetMessageString()
-	a := dummyMessage()
+	a := g.Messages.GetMessagesInOrder()
 	as := tplVars{
 		Name:     g.Name,
 		Messages: a,
 	}
-	tpl.ExecuteTemplate(os.Stdout, "message.gohtml", as)
 	tpl.ExecuteTemplate(wr, "message.gohtml", as)
-}
-
-func dummyMessage() []data.RumourMessage {
-	bjorn := "Bjorn"
-	ketill := "Ketill"
-	manuel := "Manuel"
-	m := make([]data.RumourMessage, 0)
-	for i := 0; i < 10; i++ {
-		var og string
-		if i%3 == 0 {
-			og = bjorn
-		} else if i%3 == 1 {
-			og = manuel
-		} else {
-			og = ketill
-		}
-		rm := data.RumourMessage{
-			ID:     uint32(i),
-			Origin: og,
-			Text:   "Bjorn er cool",
-		}
-		m = append(m, rm)
-	}
-	return m
 }
 
 //AddMessage takes in a message from the user in a form and adds it

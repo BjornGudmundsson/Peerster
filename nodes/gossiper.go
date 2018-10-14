@@ -106,7 +106,6 @@ func (g *Gossiper) ClientMessageReceived(port int) {
 
 	for {
 		id := g.Counter.IncrementAndReturn()
-		g.Messages.PrintMessages()
 		n, _, e := conn.ReadFromUDP(packet)
 		if e != nil {
 			fmt.Println(n, e.Error())
