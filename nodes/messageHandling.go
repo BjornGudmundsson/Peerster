@@ -36,7 +36,9 @@ func (g *Gossiper) handleRumourMessage(msg GossipAddress) {
 	addr := msg.Addr
 	rm := *gp.Rumour
 	enPeer := g.enPeer.EntropyPeer
-	fmt.Printf("\n RUMOR origin %v from %v ID %v contents %v \n", rm.Origin, addr, rm.ID, rm.Text)
+	if rm.Text != "" {
+		fmt.Printf("\n RUMOR origin %v from %v ID %v contents %v \n", rm.Origin, addr, rm.ID, rm.Text)
+	}
 	if g.Status.IsMongering {
 		if addr == g.Status.GetIP() {
 			g.Mongering.Ch <- rm
@@ -45,7 +47,10 @@ func (g *Gossiper) handleRumourMessage(msg GossipAddress) {
 	}
 	isNew := g.Messages.CheckIfMsgIsNew(rm)
 	if isNew {
-		g.Messages.AddAMessage(rm)
+		if rm.Text != "" {
+			g.Messages.AddAMessage(rm)
+		}
+		g.RoutingTable.UpdateRoutingTable(rm.Origin, rm.Text)
 		g.Messages.PrintMessagesForOrigin(rm.Origin)
 		myMsgs := g.Messages.GetMessageVector()
 		sp := data.GetStatusPacketFromVector(myMsgs)

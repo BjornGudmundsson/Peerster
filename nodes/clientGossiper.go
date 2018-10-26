@@ -38,6 +38,10 @@ func (g *Gossiper) ServeHTTP(wr http.ResponseWriter, req *http.Request) {
 		g.AddMessage(wr, req)
 		return
 	}
+	if route == "/GetRoutingTable" {
+		g.GetRoutingTable(wr, req)
+		return
+	}
 }
 
 var tpl *template.Template
@@ -86,4 +90,15 @@ func (g *Gossiper) AddMessage(wr http.ResponseWriter, req *http.Request) {
 		log.Fatal(e)
 	}
 	conn.Write(buf)
+}
+
+//GetRoutingTable displays the routing table for debug purposes
+func (g *Gossiper) GetRoutingTable(wr http.ResponseWriter, req *http.Request) {
+	m := struct{
+		Table  map[string]string
+	}
+	n = m{
+		Table : g.RoutingTable.Table,
+	}
+	tpl.ExecuteTemplate(wr, "routing.gohtml", n)
 }

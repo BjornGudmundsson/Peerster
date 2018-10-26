@@ -12,16 +12,17 @@ import (
 //Gossiper is an instance of a node running the peerster protocol.
 //It has the UDP address of it self and its active UDP connection.
 type Gossiper struct {
-	address    *net.UDPAddr
-	conn       *net.UDPConn
-	Name       string
-	Neighbours *data.Neighbours
-	Messages   *data.MessageHolder
-	Counter    *data.Counter
-	Status     *Status
-	Mongering  MongererMessages
-	enPeer     *EntropyPeer
-	UIPort     int
+	address      *net.UDPAddr
+	conn         *net.UDPConn
+	Name         string
+	Neighbours   *data.Neighbours
+	Messages     *data.MessageHolder
+	Counter      *data.Counter
+	Status       *Status
+	Mongering    MongererMessages
+	enPeer       *EntropyPeer
+	UIPort       int
+	RoutingTable *data.RoutingTable
 }
 
 //NewGossiper is a function that returns a pointer
@@ -50,17 +51,21 @@ func NewGossiper(address, name string, neighbours []string, p int) *Gossiper {
 		Ch: make(chan data.RumourMessage),
 	}
 	counter := &data.Counter{}
+	routingTable := &data.RoutingTable{
+		Table : make(map[string]string)
+	}
 	return &Gossiper{
-		Name:       name,
-		address:    udpaddr,
-		conn:       udpconn,
-		Neighbours: conN,
-		Messages:   data.NewMessageHolder(),
-		Counter:    counter,
-		Status:     status,
-		Mongering:  mong,
-		enPeer:     &EntropyPeer{},
-		UIPort:     p,
+		Name:         name,
+		address:      udpaddr,
+		conn:         udpconn,
+		Neighbours:   conN,
+		Messages:     data.NewMessageHolder(),
+		Counter:      counter,
+		Status:       status,
+		Mongering:    mong,
+		enPeer:       &EntropyPeer{},
+		UIPort:       p,
+		RoutingTable: routingTable,
 	}
 }
 

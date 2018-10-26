@@ -2,6 +2,7 @@ package main
 
 import (
 	"flag"
+	"fmt"
 
 	"github.com/BjornGudmundsson/Peerster/data"
 	"github.com/BjornGudmundsson/Peerster/nodes"
@@ -16,11 +17,12 @@ func main() {
 	if *simple {
 	}
 	flag.Parse()
+	fmt.Println(*peers)
 	fp := data.FormatPeers(*peers)
 	g := nodes.NewGossiper(*addr, *name, fp, *port)
 	go g.ReceiveMessages()
 	go g.ClientMessageReceived(*port)
-	go g.TCPServer(8080)
+	go g.TCPServer(*port + 1)
 	go g.AntiEntropy()
 	for {
 	}

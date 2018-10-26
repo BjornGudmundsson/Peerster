@@ -1,0 +1,17 @@
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+
+  <title>The HTML5 Herald</title>
+
+</head>
+
+<body>
+    {{$key, $val := range .Table}}
+        <div>
+            <p> {{key}} </p>
+            <p> {{$val}} </p?
+        </div>
+    {{end}}
+</body>
+</html>
