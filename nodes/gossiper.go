@@ -52,7 +52,7 @@ func NewGossiper(address, name string, neighbours []string, p int) *Gossiper {
 	}
 	counter := &data.Counter{}
 	routingTable := &data.RoutingTable{
-		Table : make(map[string]string)
+		Table: make(map[string]string),
 	}
 	return &Gossiper{
 		Name:         name,

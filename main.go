@@ -14,15 +14,17 @@ func main() {
 	addr := flag.String("gossipAddr", "127.0.0.1", "The home address")
 	peers := flag.String("peers", "127.0.0.1", "The list of peers")
 	simple := flag.Bool("simple", true, "Is it simple")
+	rtTimer := flag.Int("rttimer", 0, "timer of rumour chat messages")
 	if *simple {
 	}
 	flag.Parse()
-	fmt.Println(*peers)
+	fmt.Println(*rtTimer)
 	fp := data.FormatPeers(*peers)
 	g := nodes.NewGossiper(*addr, *name, fp, *port)
 	go g.ReceiveMessages()
 	go g.ClientMessageReceived(*port)
 	go g.TCPServer(*port + 1)
+	go g.RumourChatting(*rtTimer)
 	go g.AntiEntropy()
 	for {
 	}

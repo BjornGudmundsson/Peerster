@@ -78,6 +78,9 @@ func (g *Gossiper) GetMessages(wr http.ResponseWriter, req *http.Request) {
 //AddMessage takes in a message from the user in a form and adds it
 func (g *Gossiper) AddMessage(wr http.ResponseWriter, req *http.Request) {
 	text := req.FormValue("text")
+	if len(text) == 0 || text == "" {
+		return
+	}
 	addr := g.address
 	tmsg := &data.TextMessage{
 		Msg: text,
@@ -92,13 +95,13 @@ func (g *Gossiper) AddMessage(wr http.ResponseWriter, req *http.Request) {
 	conn.Write(buf)
 }
 
+//RoutingMap is just so I ca pass the routing table
+type RoutingMap struct {
+	Table map[string]string
+}
+
 //GetRoutingTable displays the routing table for debug purposes
 func (g *Gossiper) GetRoutingTable(wr http.ResponseWriter, req *http.Request) {
-	m := struct{
-		Table  map[string]string
-	}
-	n = m{
-		Table : g.RoutingTable.Table,
-	}
-	tpl.ExecuteTemplate(wr, "routing.gohtml", n)
+	fmt.Println("bjorn")
+	tpl.ExecuteTemplate(wr, "routing.gohtml", g.RoutingTable.Table)
 }

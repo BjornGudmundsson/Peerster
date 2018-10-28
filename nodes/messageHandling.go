@@ -31,13 +31,21 @@ func (g *Gossiper) handleSimpleMessage(msg GossipAddress) {
 }
 
 func (g *Gossiper) handleRumourMessage(msg GossipAddress) {
-
 	gp := msg.Msg
 	addr := msg.Addr
 	rm := *gp.Rumour
 	enPeer := g.enPeer.EntropyPeer
 	if rm.Text != "" {
-		fmt.Printf("\n RUMOR origin %v from %v ID %v contents %v \n", rm.Origin, addr, rm.ID, rm.Text)
+		fmt.Printf("\nRUMOR origin %v from %v ID %v contents %v \n", rm.Origin, addr, rm.ID, rm.Text)
+	}
+	isNew := g.Messages.CheckIfMsgIsNew(rm)
+	if rm.Text == "" {
+		fmt.Println("did I get through", isNew)
+		if isNew {
+			fmt.Println("did I get through", isNew)
+			g.RoutingTable.UpdateRoutingTable(rm.Origin, addr)
+		}
+		return
 	}
 	if g.Status.IsMongering {
 		if addr == g.Status.GetIP() {
@@ -45,13 +53,9 @@ func (g *Gossiper) handleRumourMessage(msg GossipAddress) {
 		}
 		return
 	}
-	isNew := g.Messages.CheckIfMsgIsNew(rm)
 	if isNew {
-		if rm.Text != "" {
-			g.Messages.AddAMessage(rm)
-		}
-		g.RoutingTable.UpdateRoutingTable(rm.Origin, rm.Text)
-		g.Messages.PrintMessagesForOrigin(rm.Origin)
+		g.Messages.AddAMessage(rm)
+		g.RoutingTable.UpdateRoutingTable(rm.Origin, addr)
 		myMsgs := g.Messages.GetMessageVector()
 		sp := data.GetStatusPacketFromVector(myMsgs)
 		ngp := data.GossipPacket{
@@ -94,7 +98,6 @@ func (g *Gossiper) handleStatusMessage(msg GossipAddress) {
 	addr := msg.Addr
 	m := msg.Msg
 	smap := TurnStatusIntoMap(*m.Status)
-	fmt.Println(smap)
 	upToDate := g.CheckIfUpToDate(smap)
 	if upToDate {
 		fmt.Printf("\n IN SYNC WITH %v \n", addr)

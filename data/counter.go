@@ -18,3 +18,8 @@ func (c *Counter) IncrementAndReturn() uint32 {
 	c.c = c.c + 1
 	return c.c
 }
+
+//ReturnCounter returns the current value of the counter
+func (c *Counter) ReturnCounter() uint32 {
+	return c.c
+}
