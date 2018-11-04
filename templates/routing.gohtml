@@ -11,9 +11,10 @@
         {{ range $key, $value := . }}
             <div>
                 <p> {{ $key }} : {{ $value }} </p>
-                <button>Send Private message</button>
+                <a href='/PrivateMessage?name={{$key}}'>Send Private message</a>
             </div>
         {{end}}
     </div>
+    <script src="/GetRoutingTableJS"></script>
 </body>
 </html>

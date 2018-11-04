@@ -35,9 +35,12 @@ func NewSimpleMessage(ogname, msg, relay string) *SimpleMessage {
 //the form of a RumourMessage structu and
 //the corresponding status of the node.
 type GossipPacket struct {
-	Simple *SimpleMessage
-	Rumour *RumourMessage
-	Status *StatusPacket
+	Simple         *SimpleMessage
+	Rumour         *RumourMessage
+	Status         *StatusPacket
+	PrivateMessage *PrivateMessage
+	DataRequest    *DataRequest
+	DataReply      *DataReply
 }
 
 //MessageHolder Assures a more concurrent access to

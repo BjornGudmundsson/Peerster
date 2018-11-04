@@ -20,6 +20,15 @@ func (g *Gossiper) delegateMessages(ch chan GossipAddress) {
 			if msg.Msg.Status != nil {
 				go g.handleStatusMessage(msg)
 			}
+			if msg.Msg.PrivateMessage != nil {
+				go g.handlePrivateMessage(msg)
+			}
+			if msg.Msg.DataReply != nil {
+				go g.handleDataReplyMessage(msg)
+			}
+			if msg.Msg.DataRequest != nil {
+				go g.handleDataRequestMessage(msg)
+			}
 		}
 	}
 }
@@ -40,9 +49,7 @@ func (g *Gossiper) handleRumourMessage(msg GossipAddress) {
 	}
 	isNew := g.Messages.CheckIfMsgIsNew(rm)
 	if rm.Text == "" {
-		fmt.Println("did I get through", isNew)
 		if isNew {
-			fmt.Println("did I get through", isNew)
 			g.RoutingTable.UpdateRoutingTable(rm.Origin, addr)
 		}
 		return

@@ -42,6 +42,26 @@ func (g *Gossiper) ServeHTTP(wr http.ResponseWriter, req *http.Request) {
 		g.GetRoutingTable(wr, req)
 		return
 	}
+
+	if route == "/GetRoutingTableJS" {
+		fmt.Println("TableJS")
+		g.GetRoutingTableJS(wr, req)
+		return
+	}
+
+	if route == "/PrivateMessage" {
+		g.SendPrivateMessageToUser(wr, req)
+		return
+	}
+
+	if route == "/PostPrivateMessage" {
+		g.PostPrivateMessage(wr, req)
+		return
+	}
+	if route == "/AddFile" {
+		g.AddFile(wr, req)
+		return
+	}
 }
 
 var tpl *template.Template
@@ -95,13 +115,62 @@ func (g *Gossiper) AddMessage(wr http.ResponseWriter, req *http.Request) {
 	conn.Write(buf)
 }
 
-//RoutingMap is just so I ca pass the routing table
-type RoutingMap struct {
-	Table map[string]string
-}
-
 //GetRoutingTable displays the routing table for debug purposes
 func (g *Gossiper) GetRoutingTable(wr http.ResponseWriter, req *http.Request) {
-	fmt.Println("bjorn")
 	tpl.ExecuteTemplate(wr, "routing.gohtml", g.RoutingTable.Table)
+}
+
+//GetRoutingTableJS serves the js file associated with the RoutingTable
+//route page.
+func (g *Gossiper) GetRoutingTableJS(wr http.ResponseWriter, req *http.Request) {
+	http.ServeFile(wr, req, "scripts/routingTable.js")
+}
+
+type privateMsg struct {
+	Name     string
+	Messages []string
+}
+
+const hoplimit uint32 = 10
+
+//SendPrivateMessageToUser send the html corresponding to opening a chat dialogue with
+//a known peer
+func (g *Gossiper) SendPrivateMessageToUser(wr http.ResponseWriter, req *http.Request) {
+	name := req.URL.Query()["name"][0]
+	messages := g.PrivateMessageStorage.GetMessagesFromOrigin(name)
+	priv := privateMsg{
+		Name:     name,
+		Messages: messages,
+	}
+	tpl.ExecuteTemplate(wr, "privateMessages.gohtml", priv)
+}
+
+//PostPrivateMessage is a route where the user can post his private message
+func (g *Gossiper) PostPrivateMessage(wr http.ResponseWriter, req *http.Request) {
+	priv := &data.PrivateMessage{
+		Origin:      g.Name,
+		ID:          0,
+		Text:        req.FormValue("text"),
+		Destination: req.FormValue("name"),
+		HopLimit:    hoplimit,
+	}
+	gp := &data.GossipPacket{
+		PrivateMessage: priv,
+	}
+	buf, _ := protobuf.Encode(gp)
+	conn, e := net.Dial("udp", g.address.String())
+	defer conn.Close()
+	if e != nil {
+		log.Fatal(e)
+	}
+	conn.Write(buf)
+}
+
+func (g *Gossiper) AddFile(wr http.ResponseWriter, req *http.Request) {
+	file, fileHeader, e := req.FormFile("file")
+	if e != nil {
+		log.Fatal(e)
+	}
+	g.HandleNewFile(fileHeader, file)
+	fmt.Println(g.Chunks)
 }
