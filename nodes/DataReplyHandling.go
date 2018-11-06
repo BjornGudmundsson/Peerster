@@ -1,10 +1,14 @@
 package nodes
 
 import (
+	"encoding/hex"
+	"fmt"
+
 	"github.com/BjornGudmundsson/Peerster/data"
 )
 
 func (g *Gossiper) handleDataReplyMessage(msg GossipAddress) {
+	fmt.Println("Got a data repy")
 	reply := msg.Msg.DataReply
 	//This if statement handles if I am supposed to forward the reply
 	//further. Check if it is for me, if not, continue forwarding
@@ -26,26 +30,48 @@ func (g *Gossiper) handleDataReplyMessage(msg GossipAddress) {
 		g.sendMessageToNeighbour(gp, nxtHop)
 		return
 	}
-	//Here I start processing datareplies
-	//Write shit here in the comments since I don't have a clear idea yet
-	/*
-		Check if I am waiting for a hashvalue
-		Am I waiting for a hashvalue
-		Yes?
-			Check if this is the hashvalue I am waiting for
-			Is this the hashvalue I am waiting for?
-			Yes?
-				Update the next hashvalue I am waiting for
-				Check if there are any more hashvalues to receive.reply
-				Start reconstructing the file
-				Possibly by keeping all of the current hashvalues in a
-				"sorted" list. Basically a list that has the hashvalues in order.reply
-				reconstruct file from that.
-			No?
-				Discard this packet
-				Send another request with the hashvalue I am waiting for.reply
-				back to the "source" of the file.
-		No?
-			Some networking delay nonesense, discard the packet
-	*/
+	if !g.dataReplyHandler.IsPending() {
+		//I wasn't waiting for anything. Probably an old packet or something
+		//some weird networking shit.
+		return
+	}
+	nxtHop, ok := g.RoutingTable.Table[reply.Origin]
+	if !ok {
+		//I don't  know how this happened
+		return
+	}
+	nxtChunk, isFinished, isMetaFile, wasValid := g.dataReplyHandler.Update(reply.HashValue, reply.Data)
+	if isFinished {
+		fmt.Println("This finished")
+		hx := hex.EncodeToString(reply.HashValue)
+		g.Chunks[hx] = string(reply.Data)
+		return
+	}
+	fmt.Println("nxtChunk is", hex.EncodeToString(nxtChunk))
+	dreq := &data.DataRequest{
+		Origin:      g.Name,
+		Destination: reply.Origin,
+		HopLimit:    hoplimit,
+		HashValue:   nxtChunk,
+	}
+	packet := &data.GossipPacket{
+		DataRequest: dreq,
+	}
+	if isMetaFile {
+		hx := hex.EncodeToString(reply.HashValue)
+		md := data.MetaData{
+			FileName:       g.dataReplyHandler.Name,
+			FileSize:       7,
+			HashOfMetaFile: hx,
+			MetaFile:       reply.Data,
+		}
+		g.Files[hx] = md
+		g.sendMessageToNeighbour(packet, nxtHop)
+		return
+	}
+	if wasValid {
+		hx := hex.EncodeToString(reply.HashValue)
+		g.Chunks[hx] = string(reply.Data)
+	}
+	g.sendMessageToNeighbour(packet, nxtHop)
 }

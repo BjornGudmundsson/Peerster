@@ -9,7 +9,7 @@ import (
 	"github.com/BjornGudmundsson/Peerster/data"
 )
 
-const chunkSize uint64 = 8 * 1024
+const chunkSize uint64 = 3
 
 //HandleNewFile takes in a multipart.Fileheader and a multipart file and processes
 //the file in such a way that is specified in the homework description. Adds all the

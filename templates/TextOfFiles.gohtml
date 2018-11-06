@@ -1,0 +1,18 @@
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+
+  <title>The HTML5 Herald</title>
+
+</head>
+
+<body>
+    <p>Here are all your texts of files</p>
+    <div>
+        {{ range $key, $val := . }}
+            <p>Text is: {{$val}} </p>
+            <br>
+        {{end}}
+    </div>
+</body>
+</html>

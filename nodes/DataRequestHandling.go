@@ -3,11 +3,66 @@ package nodes
 import (
 	"encoding/hex"
 	"fmt"
+	"time"
 
 	"github.com/BjornGudmundsson/Peerster/data"
 )
 
+//I'll wait for this amout of seconds for the
+// next chunk. If this many seconds pass I'll stop the download
+const waitForChunk int = 5
+
+func (g *Gossiper) DownLoadAFile(fn string, mf []byte, dst string) {
+	//This is the current next chunk
+	nxtChunk := mf
+	//count how many seconds have passed
+	counter := 0
+	g.dataReplyHandler.Start(fn, hex.EncodeToString(mf))
+	dr := &data.DataRequest{
+		Origin:      g.Name,
+		Destination: dst,
+		HopLimit:    hoplimit,
+		HashValue:   mf,
+	}
+	gp := &data.GossipPacket{
+		DataRequest: dr,
+	}
+	nxtHop, ok := g.RoutingTable.Table[dst]
+	if !ok {
+		//This destination is not registered
+		fmt.Println("This destination did not exist")
+		return
+	}
+	g.sendMessageToNeighbour(gp, nxtHop)
+	fmt.Println("Sending datarequest")
+	for {
+		finished := g.dataReplyHandler.IsFinished()
+		if finished {
+			fmt.Println("Finished downloading the file")
+			fmt.Println("I got this many chunks: ", len(g.dataReplyHandler.GetCurrentChunks()))
+			g.dataReplyHandler.Clear()
+			return
+		}
+		if counter > waitForChunk {
+			fmt.Println("Timed out waitinf for file")
+			g.dataReplyHandler.Clear()
+			return
+		}
+		latestChunk := g.dataReplyHandler.NextChunk()
+		d, _ := hex.DecodeString(latestChunk)
+		if !data.Compare(nxtChunk, d) {
+			nxtChunk = d
+			counter = 0
+			continue
+		}
+		counter++
+		time.Sleep(1 * time.Second)
+	}
+}
+
 func (g *Gossiper) handleDataRequestMessage(msg GossipAddress) {
+	fmt.Println("Got a data request")
+	//refactor this function at a good opportunity. This is too long
 	gp := data.GossipPacket{}
 	req := msg.Msg.DataRequest
 	g.RoutingTable.UpdateRoutingTable(req.Origin, msg.Addr)
@@ -39,6 +94,7 @@ func (g *Gossiper) handleDataRequestMessage(msg GossipAddress) {
 		return
 	}
 	txt, ok := g.Chunks[hexHash]
+	fmt.Println("sending this text")
 	if ok {
 		dr := data.DataReply{}
 		hashBytes, e := hex.DecodeString(hexHash)

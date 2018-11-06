@@ -31,6 +31,8 @@ func (ep *EntropyPeer) ResetEntropyPeer() {
 	ep.mux.Unlock()
 }
 
+const antiEntropy time.Duration = 10
+
 //AntiEntropy is an infinite loop that sends
 //StatusPackets to a random peer at a pre-determined
 //interval of all messages that this gossiper has as
@@ -38,7 +40,7 @@ func (ep *EntropyPeer) ResetEntropyPeer() {
 func (g *Gossiper) AntiEntropy() {
 	usedPeers := make(map[string]bool)
 	for {
-		time.Sleep(1 * time.Second)
+		time.Sleep(antiEntropy * time.Second)
 		g.enPeer.ResetEntropyPeer()
 		//Basically this just gives a me a random neighbour. Re-using
 		//the same function with an empty map so I could send it out to anyone

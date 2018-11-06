@@ -1,0 +1,19 @@
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+
+  <title>The HTML5 Herald</title>
+
+</head>
+
+<body>
+    <p>Here are all your metafiles</p>
+    <div>
+        {{ range $key, $val := . }}
+            <p>Metafile is: {{$key}} </p>
+            <br>
+        {{end}}
+    </div>
+    <script src="/GetRoutingTableJS"></script>
+</body>
+</html>

@@ -1,6 +1,7 @@
 package nodes
 
 import (
+	"encoding/hex"
 	"fmt"
 	"html/template"
 	"log"
@@ -60,6 +61,18 @@ func (g *Gossiper) ServeHTTP(wr http.ResponseWriter, req *http.Request) {
 	}
 	if route == "/AddFile" {
 		g.AddFile(wr, req)
+		return
+	}
+	if route == "/RequestFile" {
+		g.RequestFile(wr, req)
+		return
+	}
+	if route == "/GetMetaFiles" {
+		g.GetMetaFiles(wr, req)
+		return
+	}
+	if route == "/GetFiles" {
+		g.GetFiles(wr, req)
 		return
 	}
 }
@@ -173,4 +186,26 @@ func (g *Gossiper) AddFile(wr http.ResponseWriter, req *http.Request) {
 	}
 	g.HandleNewFile(fileHeader, file)
 	fmt.Println(g.Chunks)
+}
+
+func (g *Gossiper) RequestFile(wr http.ResponseWriter, req *http.Request) {
+	fn := req.FormValue("filename")
+	mf := req.FormValue("metafile")
+	data, e := hex.DecodeString(mf)
+	if e != nil {
+		fmt.Println("Not a valid hexstring")
+		return
+	}
+	dst := req.FormValue("destination")
+	g.DownLoadAFile(fn, data, dst)
+}
+
+func (g *Gossiper) GetMetaFiles(wr http.ResponseWriter, req *http.Request) {
+	metafiles := g.Files
+	tpl.ExecuteTemplate(wr, "metafiles.gohtml", metafiles)
+}
+
+func (g *Gossiper) GetFiles(wr http.ResponseWriter, req *http.Request) {
+	chunks := g.Chunks
+	tpl.ExecuteTemplate(wr, "TextOfFiles.gohtml", chunks)
 }

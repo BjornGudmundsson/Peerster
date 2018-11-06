@@ -19,7 +19,6 @@ type DataRequest struct {
 	Destination string
 	HopLimit    uint32
 	HashValue   []byte
-	Data        []byte
 }
 
 //DataReply is a struct

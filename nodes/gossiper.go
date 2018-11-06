@@ -26,6 +26,7 @@ type Gossiper struct {
 	PrivateMessageStorage *data.PrivateMessageStorage
 	Files                 map[string]data.MetaData
 	Chunks                map[string]string
+	dataReplyHandler      *data.DataReplyHandler
 }
 
 //NewGossiper is a function that returns a pointer
@@ -61,6 +62,7 @@ func NewGossiper(address, name string, neighbours []string, p int) *Gossiper {
 	privStorage := data.PrivateMessageStorage(tempMap)
 	files := make(map[string]data.MetaData)
 	chunks := make(map[string]string)
+	drh := data.NewDataReplyHandler()
 	return &Gossiper{
 		Name:                  name,
 		address:               udpaddr,
@@ -76,6 +78,7 @@ func NewGossiper(address, name string, neighbours []string, p int) *Gossiper {
 		PrivateMessageStorage: &privStorage,
 		Files:                 files,
 		Chunks:                chunks,
+		dataReplyHandler:      drh,
 	}
 }
 
