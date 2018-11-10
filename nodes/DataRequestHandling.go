@@ -3,6 +3,10 @@ package nodes
 import (
 	"encoding/hex"
 	"fmt"
+	"log"
+	"os"
+	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/BjornGudmundsson/Peerster/data"
@@ -10,14 +14,20 @@ import (
 
 //I'll wait for this amout of seconds for the
 // next chunk. If this many seconds pass I'll stop the download
-const waitForChunk int = 5
+const waitForChunk int = 8 * 1024
 
 func (g *Gossiper) DownLoadAFile(fn string, mf []byte, dst string) {
 	//This is the current next chunk
 	nxtChunk := mf
 	//count how many seconds have passed
 	counter := 0
-	g.dataReplyHandler.Start(fn, hex.EncodeToString(mf))
+	fs, ok := g.DownloadState[fn]
+	if ok {
+		l := len(fs.CurrentChunks) * 32
+		g.dataReplyHandler.Start(fn, hex.EncodeToString(mf), fs.MetaFile, l)
+	} else {
+		g.dataReplyHandler.Start(fn, hex.EncodeToString(mf), nil, 0)
+	}
 	dr := &data.DataRequest{
 		Origin:      g.Name,
 		Destination: dst,
@@ -30,21 +40,32 @@ func (g *Gossiper) DownLoadAFile(fn string, mf []byte, dst string) {
 	nxtHop, ok := g.RoutingTable.Table[dst]
 	if !ok {
 		//This destination is not registered
-		fmt.Println("This destination did not exist")
 		return
 	}
 	g.sendMessageToNeighbour(gp, nxtHop)
-	fmt.Println("Sending datarequest")
 	for {
 		finished := g.dataReplyHandler.IsFinished()
 		if finished {
-			fmt.Println("Finished downloading the file")
-			fmt.Println("I got this many chunks: ", len(g.dataReplyHandler.GetCurrentChunks()))
+			fmt.Println("")
+			fmt.Printf("Reconstructed file %v", g.dataReplyHandler.Name)
+			chunks := g.DownloadState[fn].CurrentChunks
+			dir, err := filepath.Abs(filepath.Dir(os.Args[0]))
+			if err != nil {
+				log.Fatal(err)
+			}
+			temp := []string{dir, "/_Downloads", g.dataReplyHandler.Name}
+			fp := strings.Join(temp, "/")
+			f, e := os.Create(fp)
+			if e != nil {
+				log.Fatal(e)
+			}
+			for _, chunk := range chunks {
+				fmt.Fprintf(f, g.Chunks[chunk])
+			}
 			g.dataReplyHandler.Clear()
 			return
 		}
 		if counter > waitForChunk {
-			fmt.Println("Timed out waitinf for file")
 			g.dataReplyHandler.Clear()
 			return
 		}
@@ -61,7 +82,6 @@ func (g *Gossiper) DownLoadAFile(fn string, mf []byte, dst string) {
 }
 
 func (g *Gossiper) handleDataRequestMessage(msg GossipAddress) {
-	fmt.Println("Got a data request")
 	//refactor this function at a good opportunity. This is too long
 	gp := data.GossipPacket{}
 	req := msg.Msg.DataRequest
@@ -94,12 +114,10 @@ func (g *Gossiper) handleDataRequestMessage(msg GossipAddress) {
 		return
 	}
 	txt, ok := g.Chunks[hexHash]
-	fmt.Println("sending this text")
 	if ok {
 		dr := data.DataReply{}
 		hashBytes, e := hex.DecodeString(hexHash)
 		if e != nil {
-			fmt.Println("Could not convrt hex string to byte slice")
 			//This really should not happen and I have no idea
 			//what to do if it happens so I am doing nothing
 			return

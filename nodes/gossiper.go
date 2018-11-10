@@ -1,6 +1,7 @@
 package nodes
 
 import (
+	"encoding/hex"
 	"fmt"
 	"log"
 	"net"
@@ -27,6 +28,7 @@ type Gossiper struct {
 	Files                 map[string]data.MetaData
 	Chunks                map[string]string
 	dataReplyHandler      *data.DataReplyHandler
+	DownloadState         data.DownloadState
 }
 
 //NewGossiper is a function that returns a pointer
@@ -63,6 +65,7 @@ func NewGossiper(address, name string, neighbours []string, p int) *Gossiper {
 	files := make(map[string]data.MetaData)
 	chunks := make(map[string]string)
 	drh := data.NewDataReplyHandler()
+	ds := data.NewDownloadState()
 	return &Gossiper{
 		Name:                  name,
 		address:               udpaddr,
@@ -79,6 +82,7 @@ func NewGossiper(address, name string, neighbours []string, p int) *Gossiper {
 		Files:                 files,
 		Chunks:                chunks,
 		dataReplyHandler:      drh,
+		DownloadState:         ds,
 	}
 }
 
@@ -121,28 +125,44 @@ func (g *Gossiper) ClientMessageReceived(port int) {
 	conn, _ := net.ListenUDP("udp4", udpAddr)
 	packet := make([]byte, 1024)
 	temp := &data.TextMessage{}
-
 	for {
-		id := g.Counter.IncrementAndReturn()
 		n, _, e := conn.ReadFromUDP(packet)
 		if e != nil {
 			fmt.Println(n, e.Error())
 		}
 		protobuf.Decode(packet, temp)
-		fmt.Printf("CLIENT MESSAGE: %v", temp.Msg)
-		rm := &data.RumourMessage{
-			Origin: g.Name,
-			ID:     id,
-			Text:   temp.Msg,
+		if temp.File != "" {
+			if temp.Dst == "" {
+				g.HandleNewOSFile(temp.File)
+			}
+			if temp.Dst != "" && temp.Request != "" {
+				mf, e := hex.DecodeString(temp.Request)
+				if e != nil {
+					log.Fatal(e)
+				}
+				g.DownLoadAFile(temp.File, mf, temp.Dst)
+			}
+			continue
 		}
-		g.Messages.AddAMessage(*rm)
-		gp := &data.GossipPacket{
-			Rumour: rm,
+		if temp.Dst == "" {
+			id := g.Counter.IncrementAndReturn()
+			fmt.Printf("CLIENT MESSAGE: %v", temp.Msg)
+			rm := &data.RumourMessage{
+				Origin: g.Name,
+				ID:     id,
+				Text:   temp.Msg,
+			}
+			g.Messages.AddAMessage(*rm)
+			gp := &data.GossipPacket{
+				Rumour: rm,
+			}
+			ga := &GossipAddress{
+				Addr: g.address.String(),
+				Msg:  gp,
+			}
+			go g.rumourMongering(ga)
+		} else {
+			g.SendPrivateMessageFromUser(temp.Dst, temp.Msg)
 		}
-		ga := &GossipAddress{
-			Addr: g.address.String(),
-			Msg:  gp,
-		}
-		go g.rumourMongering(ga)
 	}
 }

@@ -2,13 +2,11 @@ package nodes
 
 import (
 	"encoding/hex"
-	"fmt"
 
 	"github.com/BjornGudmundsson/Peerster/data"
 )
 
 func (g *Gossiper) handleDataReplyMessage(msg GossipAddress) {
-	fmt.Println("Got a data repy")
 	reply := msg.Msg.DataReply
 	//This if statement handles if I am supposed to forward the reply
 	//further. Check if it is for me, if not, continue forwarding
@@ -42,12 +40,15 @@ func (g *Gossiper) handleDataReplyMessage(msg GossipAddress) {
 	}
 	nxtChunk, isFinished, isMetaFile, wasValid := g.dataReplyHandler.Update(reply.HashValue, reply.Data)
 	if isFinished {
-		fmt.Println("This finished")
 		hx := hex.EncodeToString(reply.HashValue)
 		g.Chunks[hx] = string(reply.Data)
+		fs := g.DownloadState[g.dataReplyHandler.Name]
+		tempChunks := fs.CurrentChunks
+		tempChunks = append(tempChunks, hx)
+		fs.CurrentChunks = tempChunks
+		g.DownloadState[g.dataReplyHandler.Name] = fs
 		return
 	}
-	fmt.Println("nxtChunk is", hex.EncodeToString(nxtChunk))
 	dreq := &data.DataRequest{
 		Origin:      g.Name,
 		Destination: reply.Origin,
@@ -72,6 +73,11 @@ func (g *Gossiper) handleDataReplyMessage(msg GossipAddress) {
 	if wasValid {
 		hx := hex.EncodeToString(reply.HashValue)
 		g.Chunks[hx] = string(reply.Data)
+		fs := g.DownloadState[g.dataReplyHandler.Name]
+		tempChunks := fs.CurrentChunks
+		tempChunks = append(tempChunks, hx)
+		fs.CurrentChunks = tempChunks
+		g.DownloadState[g.dataReplyHandler.Name] = fs
 	}
 	g.sendMessageToNeighbour(packet, nxtHop)
 }

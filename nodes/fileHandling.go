@@ -3,8 +3,13 @@ package nodes
 import (
 	"crypto/sha256"
 	"encoding/hex"
+	"fmt"
+	"log"
 	"math"
 	"mime/multipart"
+	"os"
+	"path/filepath"
+	"strings"
 
 	"github.com/BjornGudmundsson/Peerster/data"
 )
@@ -41,6 +46,55 @@ func (g *Gossiper) HandleNewFile(fh *multipart.FileHeader, f multipart.File) {
 	hexHash := hex.EncodeToString(hashMFBs)
 	mf := &data.MetaData{
 		FileName:       fh.Filename,
+		FileSize:       fSize,
+		MetaFile:       metafile,
+		HashOfMetaFile: hexHash,
+	}
+	g.Files[mf.HashOfMetaFile] = *mf
+}
+
+func (g *Gossiper) HandleNewOSFile(fn string) {
+	dir, err := filepath.Abs(filepath.Dir(os.Args[0]))
+	if err != nil {
+		log.Fatal(err)
+	}
+	temp := []string{dir, "_SharedFiles", fn}
+	fp := strings.Join(temp, "/")
+	f, e := os.Open(fp)
+	if e != nil {
+		log.Fatal(e)
+	}
+	fStat, e := f.Stat()
+	if e != nil {
+		log.Fatal()
+	}
+	fSize := uint64(fStat.Size())
+	div := float64(fSize) / float64(chunkSize)
+	metafile := make([]byte, 0)
+	sizeInChunks := uint64(math.Ceil(div))
+	fmt.Println("Size: ", fSize)
+	fmt.Println("sizeInChunks", sizeInChunks)
+	for i := uint64(0); i < sizeInChunks; i++ {
+		buf := make([]byte, chunkSize)
+		n, _ := f.Read(buf)
+		chunkString := string(buf)[0:n]
+		hash := sha256.Sum256([]byte(chunkString))
+		tempbs := make([]byte, 0)
+		for _, b := range hash {
+			tempbs = append(tempbs, b)
+		}
+		hxhash := hex.EncodeToString(tempbs)
+		g.Chunks[hxhash] = chunkString
+		metafile = append(metafile, tempbs...)
+	}
+	hashMF := sha256.Sum256(metafile)
+	hashMFBs := make([]byte, 0)
+	for _, b := range hashMF {
+		hashMFBs = append(hashMFBs, b)
+	}
+	hexHash := hex.EncodeToString(hashMFBs)
+	mf := &data.MetaData{
+		FileName:       fn,
 		FileSize:       fSize,
 		MetaFile:       metafile,
 		HashOfMetaFile: hexHash,

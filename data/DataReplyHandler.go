@@ -10,10 +10,9 @@ type DataReplyHandler struct {
 	Name          string
 	nextChunk     string
 	MetaFile      []byte
-	currentChunks [][]byte
+	currentChunks []string
 	finished      bool
 	currentIndex  int
-	chunks        []ChunkAndMessage
 }
 
 func (dr *DataReplyHandler) Clear() {
@@ -43,10 +42,12 @@ type ChunkAndMessage struct {
 	Chunk   []byte
 }
 
-func (dr *DataReplyHandler) Start(fn string, nxtChunk string) {
+func (dr *DataReplyHandler) Start(fn string, nxtChunk string, mf []byte, currentIndex int) {
 	dr.isPending = true
 	dr.Name = fn
 	dr.nextChunk = nxtChunk
+	dr.MetaFile = mf
+	dr.currentIndex = currentIndex
 }
 
 func Compare(a []byte, b []byte) bool {
@@ -61,7 +62,7 @@ func Compare(a []byte, b []byte) bool {
 	return true
 }
 
-func (dr *DataReplyHandler) GetCurrentChunks() [][]byte {
+func (dr *DataReplyHandler) GetCurrentChunks() []string {
 	return dr.currentChunks
 }
 
@@ -82,25 +83,26 @@ func (dr *DataReplyHandler) Update(hashvalue []byte, data []byte) ([]byte, bool,
 		//return false since I am not finished
 		//because I have only received the metafile
 		//The chunk i return is the first chunk of the file
+		fmt.Println("")
+		fmt.Printf("Downloading metafile of %v from anotherPeer", dr.Name)
 		dr.nextChunk = hex.EncodeToString(data[i : i+32])
 		nxtChunk, _ := hex.DecodeString(dr.nextChunk)
-		fmt.Println("First chunk", nxtChunk)
 		return nxtChunk, false, true, true
 	}
 	j := i + 32
 	nxtChunk := dr.MetaFile[i:j]
 	if hashHex != dr.nextChunk {
-		fmt.Println("Next chunk was after all", hex.EncodeToString(nxtChunk))
 		return nxtChunk, false, false, false
 	}
-	dr.currentChunks = append(dr.currentChunks, hashvalue)
+	dr.currentChunks = append(dr.currentChunks, hashHex)
 	if j == len(dr.MetaFile) {
-		fmt.Println("Download completed, got all da chunks")
 		dr.finished = true
 		return nxtChunk, true, false, false
 	}
 	dr.nextChunk = hex.EncodeToString(dr.MetaFile[j : j+32])
 	dr.currentIndex = j
+	fmt.Println("")
+	fmt.Printf("Downloading %v chunk %v from anotherPeer", dr.Name, j/32)
 	return dr.MetaFile[j : j+32], false, false, true
 
 }
@@ -115,8 +117,4 @@ func (dr *DataReplyHandler) IsPending() bool {
 
 func (dr *DataReplyHandler) NextChunk() string {
 	return dr.nextChunk
-}
-
-func (dr *DataReplyHandler) GetChunks() []ChunkAndMessage {
-	return dr.chunks
 }

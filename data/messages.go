@@ -9,7 +9,10 @@ import (
 //message in a struct so that it can be
 //Serialized and then deserialized.
 type TextMessage struct {
-	Msg string
+	Dst     string
+	Msg     string
+	File    string
+	Request string
 }
 
 //SimpleMessage is a struct that helps implement a simple

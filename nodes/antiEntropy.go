@@ -31,7 +31,7 @@ func (ep *EntropyPeer) ResetEntropyPeer() {
 	ep.mux.Unlock()
 }
 
-const antiEntropy time.Duration = 10
+const antiEntropy time.Duration = 1
 
 //AntiEntropy is an infinite loop that sends
 //StatusPackets to a random peer at a pre-determined

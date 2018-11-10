@@ -189,7 +189,7 @@ func (g *Gossiper) AddFile(wr http.ResponseWriter, req *http.Request) {
 }
 
 func (g *Gossiper) RequestFile(wr http.ResponseWriter, req *http.Request) {
-	fn := req.FormValue("filename")
+	fn := req.FormValue("fileName")
 	mf := req.FormValue("metafile")
 	data, e := hex.DecodeString(mf)
 	if e != nil {
