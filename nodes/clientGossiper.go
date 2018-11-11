@@ -23,7 +23,7 @@ func (g *Gossiper) TCPServer(port int) {
 func (g *Gossiper) ServeHTTP(wr http.ResponseWriter, req *http.Request) {
 	tpl = template.Must(template.ParseGlob("./templates/*.gohtml"))
 	route := req.URL.Path
-	if route == "/index" {
+	if route == "/index" || route == "/" {
 		g.GetIndexPage(wr, req)
 		return
 	}
