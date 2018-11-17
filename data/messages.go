@@ -9,10 +9,12 @@ import (
 //message in a struct so that it can be
 //Serialized and then deserialized.
 type TextMessage struct {
-	Dst     string
-	Msg     string
-	File    string
-	Request string
+	Dst      string
+	Msg      string
+	File     string
+	Request  string
+	Keywords string
+	Budget   uint64
 }
 
 //SimpleMessage is a struct that helps implement a simple
@@ -44,6 +46,8 @@ type GossipPacket struct {
 	PrivateMessage *PrivateMessage
 	DataRequest    *DataRequest
 	DataReply      *DataReply
+	SearchReply    *SearchReply
+	SearchRequest  *SearchRequest
 }
 
 //MessageHolder Assures a more concurrent access to

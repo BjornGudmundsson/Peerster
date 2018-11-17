@@ -17,18 +17,22 @@ func main() {
 	dst := flag.String("dest", "", "The destination node of a message or a file download")
 	file := flag.String("file", "", "The file to be indexed by the gossiper, or filename of the requested file")
 	req := flag.String("request", "", "request a chunk or metafile of this hash")
+	keywords := flag.String("keywords", "", "The keywords to search for a file by")
+	budget := flag.Int("budget", 2, "The budget for a request")
 	flag.Parse()
-	sendMessage(*UIPort, *msg, *ip, *dst, *file, *req)
+	sendMessage(*UIPort, *msg, *ip, *dst, *file, *req, *keywords, uint64(*budget))
 }
 
-func sendMessage(port int, msg string, ip string, dst string, file, req string) {
+func sendMessage(port int, msg string, ip string, dst string, file, req string, kw string, b uint64) {
 	s := fmt.Sprintf("%v:%v", ip, port)
 	fmt.Println(s)
 	tmsg := &data.TextMessage{
-		Msg:     msg,
-		Dst:     dst,
-		File:    file,
-		Request: req,
+		Msg:      msg,
+		Dst:      dst,
+		File:     file,
+		Request:  req,
+		Keywords: kw,
+		Budget:   b,
 	}
 	fmt.Println("Text message: ", *tmsg)
 	buf, _ := protobuf.Encode(tmsg)

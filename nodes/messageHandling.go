@@ -29,6 +29,12 @@ func (g *Gossiper) delegateMessages(ch chan GossipAddress) {
 			if msg.Msg.DataRequest != nil {
 				go g.handleDataRequestMessage(msg)
 			}
+			if msg.Msg.SearchReply != nil {
+				go g.HandleSearchReply(msg)
+			}
+			if msg.Msg.SearchRequest != nil {
+				go g.HandleSearchRequest(msg)
+			}
 		}
 	}
 }

@@ -1,7 +1,6 @@
 package nodes
 
 import (
-	"encoding/hex"
 	"fmt"
 	"log"
 	"net"
@@ -29,6 +28,7 @@ type Gossiper struct {
 	Chunks                map[string]string
 	dataReplyHandler      *data.DataReplyHandler
 	DownloadState         data.DownloadState
+	MetaFileHashes        data.MetaFileHashes
 }
 
 //NewGossiper is a function that returns a pointer
@@ -66,6 +66,7 @@ func NewGossiper(address, name string, neighbours []string, p int) *Gossiper {
 	chunks := make(map[string]string)
 	drh := data.NewDataReplyHandler()
 	ds := data.NewDownloadState()
+	mfh := data.NewMetaFileHashes()
 	return &Gossiper{
 		Name:                  name,
 		address:               udpaddr,
@@ -83,6 +84,7 @@ func NewGossiper(address, name string, neighbours []string, p int) *Gossiper {
 		Chunks:                chunks,
 		dataReplyHandler:      drh,
 		DownloadState:         ds,
+		MetaFileHashes:        mfh,
 	}
 }
 
@@ -98,11 +100,11 @@ func (g *Gossiper) sendMessageToNeighbour(msg *data.GossipPacket, addr string) {
 //ReceiveMessages listens for incoming messages coming
 //in on the UDP connection for this node.
 func (g *Gossiper) ReceiveMessages() {
-	buffer := make([]byte, 1024)
 	conn := g.conn
 	gossipChannel := make(chan GossipAddress)
 	go g.delegateMessages(gossipChannel)
 	for {
+		buffer := make([]byte, 1024)
 		gp := &data.GossipPacket{}
 		_, addr, _ := conn.ReadFromUDP(buffer[:])
 		protobuf.Decode(buffer, gp)
@@ -114,6 +116,16 @@ func (g *Gossiper) ReceiveMessages() {
 		gossipChannel <- gAddress
 	}
 }
+
+//This is the threshold for
+//for the number of hits
+//required to be satisfied
+//with the  search
+const threshold int = 2
+
+//This is the maximum of requests
+//I'll send if the budget was not specified
+const maxBudget int = 32
 
 //ClientMessageReceived is a function bound to a pointer to the Gossiper struct.
 //It enables a listening on the port specified in the function parameters
@@ -132,34 +144,15 @@ func (g *Gossiper) ClientMessageReceived(port int) {
 		}
 		protobuf.Decode(packet, temp)
 		if temp.File != "" {
-			if temp.Dst == "" {
-				g.HandleNewOSFile(temp.File)
-			}
-			if temp.Dst != "" && temp.Request != "" {
-				mf, e := hex.DecodeString(temp.Request)
-				if e != nil {
-					log.Fatal(e)
-				}
-				g.DownLoadAFile(temp.File, mf, temp.Dst)
-			}
+			g.FileHandling(*temp)
+			continue
+		}
+		if temp.Keywords != "" {
+			go g.HandleClientSearchRequests(*temp)
 			continue
 		}
 		if temp.Dst == "" {
-			id := g.Counter.IncrementAndReturn()
-			fmt.Printf("CLIENT MESSAGE: %v", temp.Msg)
-			rm := &data.RumourMessage{
-				Origin: g.Name,
-				ID:     id,
-				Text:   temp.Msg,
-			}
-			g.Messages.AddAMessage(*rm)
-			gp := &data.GossipPacket{
-				Rumour: rm,
-			}
-			ga := &GossipAddress{
-				Addr: g.address.String(),
-				Msg:  gp,
-			}
+			ga := g.ClientGossiperHandling(*temp)
 			go g.rumourMongering(ga)
 		} else {
 			g.SendPrivateMessageFromUser(temp.Dst, temp.Msg)
