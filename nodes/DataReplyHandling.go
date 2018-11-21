@@ -28,56 +28,40 @@ func (g *Gossiper) handleDataReplyMessage(msg GossipAddress) {
 		g.sendMessageToNeighbour(gp, nxtHop)
 		return
 	}
-	if !g.dataReplyHandler.IsPending() {
-		//I wasn't waiting for anything. Probably an old packet or something
-		//some weird networking shit.
-		return
-	}
-	nxtHop, ok := g.RoutingTable.Table[reply.Origin]
-	if !ok {
-		//I don't  know how this happened
-		return
-	}
-	nxtChunk, isFinished, isMetaFile, wasValid := g.dataReplyHandler.Update(reply.HashValue, reply.Data)
-	if isFinished {
-		hx := hex.EncodeToString(reply.HashValue)
-		g.Chunks[hx] = string(reply.Data)
-		fs := g.DownloadState[g.dataReplyHandler.Name]
-		tempChunks := fs.CurrentChunks
-		tempChunks = append(tempChunks, hx)
-		fs.CurrentChunks = tempChunks
-		g.DownloadState[g.dataReplyHandler.Name] = fs
-		return
-	}
-	dreq := &data.DataRequest{
-		Origin:      g.Name,
-		Destination: reply.Origin,
-		HopLimit:    hoplimit,
-		HashValue:   nxtChunk,
-	}
-	packet := &data.GossipPacket{
-		DataRequest: dreq,
-	}
-	if isMetaFile {
-		hx := hex.EncodeToString(reply.HashValue)
-		md := data.MetaData{
-			FileName:       g.dataReplyHandler.Name,
-			FileSize:       7,
-			HashOfMetaFile: hx,
-			MetaFile:       reply.Data,
+	g.HandlerDataReplies.PassReplyToChannel(*reply)
+}
+
+//HasAllChunksOfFile checks if all of the chunks in a metafile
+//are present in the chunk repository of the gossiper. It also
+//returns the index of the next chunk it needs in order.
+func (g *Gossiper) HasAllChunksOfFile(metafile []byte) (bool, uint64) {
+	//The length of the metafile is always a multiple of 32
+	n := len(metafile) / 32
+	for i := 0; i < n; i++ {
+		j := i + 1
+		hx := hex.EncodeToString(metafile[i*32 : j*32])
+		_, ok := g.Chunks[hx]
+		if !ok {
+			return false, uint64(i * 32)
 		}
-		g.Files[hx] = md
-		g.sendMessageToNeighbour(packet, nxtHop)
+	}
+	return true, uint64(n * 32)
+}
+
+//SendDataRequest is just an abstraction of sending a datarequest to a destination.
+func (g *Gossiper) SendDataRequest(dst string, chunk []byte) {
+	datarequest := &data.DataRequest{
+		Destination: dst,
+		HopLimit:    hoplimit,
+		Origin:      g.Name,
+		HashValue:   chunk,
+	}
+	gp := &data.GossipPacket{
+		DataRequest: datarequest,
+	}
+	nxtHop, ok := g.RoutingTable.Table[dst]
+	if !ok {
 		return
 	}
-	if wasValid {
-		hx := hex.EncodeToString(reply.HashValue)
-		g.Chunks[hx] = string(reply.Data)
-		fs := g.DownloadState[g.dataReplyHandler.Name]
-		tempChunks := fs.CurrentChunks
-		tempChunks = append(tempChunks, hx)
-		fs.CurrentChunks = tempChunks
-		g.DownloadState[g.dataReplyHandler.Name] = fs
-	}
-	g.sendMessageToNeighbour(packet, nxtHop)
+	g.sendMessageToNeighbour(gp, nxtHop)
 }

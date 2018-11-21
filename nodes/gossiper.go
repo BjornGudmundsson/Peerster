@@ -29,6 +29,8 @@ type Gossiper struct {
 	dataReplyHandler      *data.DataReplyHandler
 	DownloadState         data.DownloadState
 	MetaFileHashes        data.MetaFileHashes
+	StateFileFinder       data.StateFileFinder
+	HandlerDataReplies    data.HandlerDataReplies
 }
 
 //NewGossiper is a function that returns a pointer
@@ -67,6 +69,8 @@ func NewGossiper(address, name string, neighbours []string, p int) *Gossiper {
 	drh := data.NewDataReplyHandler()
 	ds := data.NewDownloadState()
 	mfh := data.NewMetaFileHashes()
+	sff := data.NewStateFileFinder()
+	hdr := data.NewHandlerDataReplies()
 	return &Gossiper{
 		Name:                  name,
 		address:               udpaddr,
@@ -82,9 +86,11 @@ func NewGossiper(address, name string, neighbours []string, p int) *Gossiper {
 		PrivateMessageStorage: &privStorage,
 		Files:                 files,
 		Chunks:                chunks,
+		MetaFileHashes:        mfh,
+		StateFileFinder:       sff,
 		dataReplyHandler:      drh,
 		DownloadState:         ds,
-		MetaFileHashes:        mfh,
+		HandlerDataReplies:    hdr,
 	}
 }
 
@@ -93,8 +99,14 @@ func (g *Gossiper) sendMessageToNeighbour(msg *data.GossipPacket, addr string) {
 	if e != nil {
 		log.Fatal(e)
 	}
-	packetbyte, _ := protobuf.Encode(msg)
-	g.conn.WriteToUDP(packetbyte, udpaddr)
+	packetbyte, e := protobuf.Encode(msg)
+	if e != nil {
+		log.Fatal(e)
+	}
+	_, e = g.conn.WriteToUDP(packetbyte, udpaddr)
+	if e != nil {
+		log.Fatal(e)
+	}
 }
 
 //ReceiveMessages listens for incoming messages coming

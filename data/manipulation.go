@@ -36,3 +36,27 @@ func SliceToBoolMap(arr []string) map[string]bool {
 	}
 	return m
 }
+
+//CreateBudgetList takes in two integers
+//n and m and returns a list of uint64 that
+//are an even way to split them up such that no index
+//is more than 1 greater than any other index
+func CreateBudgetList(n, m uint64) []uint64 {
+	if n <= m {
+		temp := make([]uint64, n)
+		div := m / n
+		mod := m % n
+		for i := uint64(0); i < n; i++ {
+			temp[i] = temp[i] + uint64(div)
+		}
+		for i := uint64(0); i < mod; i++ {
+			temp[i] = temp[i] + uint64(1)
+		}
+		return temp
+	}
+	temp := make([]uint64, m)
+	for i := uint64(0); i < m; i++ {
+		temp[i] = 1
+	}
+	return temp
+}

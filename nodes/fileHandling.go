@@ -101,3 +101,22 @@ func (g *Gossiper) HandleNewOSFile(fn string) {
 	}
 	g.Files[mf.HashOfMetaFile] = *mf
 }
+
+//CreateChunkmap takes in the metafile corresponding to a file
+//and returns a chunkmap of all the chunks that this gossiper
+//has for this file.
+func (g *Gossiper) CreateChunkmap(metafile []byte) []uint64 {
+	chunks := g.Chunks
+	//I know the Metafile is a multiple of 32
+	n := uint64(len(metafile)) / 32
+	temp := make([]uint64, 0)
+	for i := uint64(0); i < n-1; i++ {
+		j := i + 1
+		hx := hex.EncodeToString(metafile[i*32 : j*32])
+		_, ok := chunks[hx]
+		if ok {
+			temp = append(temp, i)
+		}
+	}
+	return temp
+}

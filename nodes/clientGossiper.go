@@ -1,7 +1,6 @@
 package nodes
 
 import (
-	"encoding/hex"
 	"fmt"
 	"html/template"
 	"log"
@@ -191,13 +190,15 @@ func (g *Gossiper) AddFile(wr http.ResponseWriter, req *http.Request) {
 func (g *Gossiper) RequestFile(wr http.ResponseWriter, req *http.Request) {
 	fn := req.FormValue("fileName")
 	mf := req.FormValue("metafile")
-	data, e := hex.DecodeString(mf)
-	if e != nil {
-		fmt.Println("Not a valid hexstring")
-		return
+	md := data.MetaData{
+		FileName:       fn,
+		HashOfMetaFile: mf,
+		MetaFile:       nil,
+		FileSize:       0,
 	}
+	g.Files[fn] = md
 	dst := req.FormValue("destination")
-	g.DownLoadAFile(fn, data, dst)
+	go g.DownloadingFile(fn, dst)
 }
 
 func (g *Gossiper) GetMetaFiles(wr http.ResponseWriter, req *http.Request) {

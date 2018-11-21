@@ -89,6 +89,7 @@ func (g *Gossiper) handleDataRequestMessage(msg GossipAddress) {
 	hash := req.HashValue
 	hexHash := hex.EncodeToString(hash)
 	metafile, ok := g.Files[hexHash]
+
 	if ok {
 		//Send the metafile
 		mf := metafile.HashOfMetaFile

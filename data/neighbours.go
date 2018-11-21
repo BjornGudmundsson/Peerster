@@ -14,6 +14,18 @@ type Neighbours struct {
 	mux           sync.Mutex
 }
 
+//GetAllNeighboursWithException is a function bound to a Neighbours struct
+//that returns the list of all neighbours with the exception of a specified neighbour
+func (n *Neighbours) GetAllNeighboursWithException(addr string) []string {
+	temp := make([]string, 0)
+	for key := range n.Neighbours {
+		if key != addr {
+			temp = append(temp, key)
+		}
+	}
+	return temp
+}
+
 //AddANeighbour adds a new neighbour to the map
 //in a concurrent way.
 func (n *Neighbours) AddANeighbour(s string) {

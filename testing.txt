@@ -1,0 +1,3 @@
+./Peerster -UIPort=10000 -name=Bjorn -peers=127.0.0.1:6000 -gossipAddr=127.0.0.1:5000 -rttimer=1
+
+./Peerster -UIPort=20000 -name=Lukas -peers=127.0.0.1:5000 -gossipAddr=127.0.0.1:6000 -rttimer=1
