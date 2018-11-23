@@ -1,9 +1,7 @@
 package nodes
 
 import (
-	"encoding/hex"
 	"fmt"
-	"log"
 
 	"github.com/BjornGudmundsson/Peerster/data"
 )
@@ -12,7 +10,7 @@ import (
 //requests from the client by abstracting the functionality
 //and make the client messages function maintainable
 func (g *Gossiper) FileHandling(temp data.TextMessage) {
-	if temp.Dst == "" {
+	/*if temp.Dst == "" {
 		g.HandleNewOSFile(temp.File)
 	}
 	if temp.Dst != "" && temp.Request != "" {
@@ -21,7 +19,7 @@ func (g *Gossiper) FileHandling(temp data.TextMessage) {
 			log.Fatal(e)
 		}
 		g.DownLoadAFile(temp.File, mf, temp.Dst)
-	}
+	}*/
 }
 
 //ClientGossiperHandling is a function bound to a point to a Gossiper that

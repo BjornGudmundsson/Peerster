@@ -26,8 +26,6 @@ type Gossiper struct {
 	PrivateMessageStorage *data.PrivateMessageStorage
 	Files                 map[string]data.MetaData
 	Chunks                map[string]string
-	dataReplyHandler      *data.DataReplyHandler
-	DownloadState         data.DownloadState
 	MetaFileHashes        data.MetaFileHashes
 	StateFileFinder       data.StateFileFinder
 	HandlerDataReplies    data.HandlerDataReplies
@@ -66,8 +64,6 @@ func NewGossiper(address, name string, neighbours []string, p int) *Gossiper {
 	privStorage := data.PrivateMessageStorage(tempMap)
 	files := make(map[string]data.MetaData)
 	chunks := make(map[string]string)
-	drh := data.NewDataReplyHandler()
-	ds := data.NewDownloadState()
 	mfh := data.NewMetaFileHashes()
 	sff := data.NewStateFileFinder()
 	hdr := data.NewHandlerDataReplies()
@@ -88,8 +84,6 @@ func NewGossiper(address, name string, neighbours []string, p int) *Gossiper {
 		Chunks:                chunks,
 		MetaFileHashes:        mfh,
 		StateFileFinder:       sff,
-		dataReplyHandler:      drh,
-		DownloadState:         ds,
 		HandlerDataReplies:    hdr,
 	}
 }
@@ -116,7 +110,7 @@ func (g *Gossiper) ReceiveMessages() {
 	gossipChannel := make(chan GossipAddress)
 	go g.delegateMessages(gossipChannel)
 	for {
-		buffer := make([]byte, 1024)
+		buffer := make([]byte, 8*1024)
 		gp := &data.GossipPacket{}
 		_, addr, _ := conn.ReadFromUDP(buffer[:])
 		protobuf.Decode(buffer, gp)
