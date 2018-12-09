@@ -12,9 +12,10 @@ import (
 	"strings"
 
 	"github.com/BjornGudmundsson/Peerster/data"
+	"github.com/BjornGudmundsson/Peerster/data/transactions"
 )
 
-const chunkSize uint64 = 8 * 1024
+const chunkSize uint64 = 8
 
 //HandleNewFile takes in a multipart.Fileheader and a multipart file and processes
 //the file in such a way that is specified in the homework description. Adds all the
@@ -51,8 +52,16 @@ func (g *Gossiper) HandleNewFile(fh *multipart.FileHeader, f multipart.File) {
 		HashOfMetaFile: hexHash,
 	}
 	g.Files[mf.HashOfMetaFile] = *mf
+	file := transactions.NewFile(fh.Filename, fSize, hashMFBs)
+	tx := transactions.NewTransaction(file, hoplimit)
+	g.BroadCastTxPublish(tx, "")
+	g.TransactionBuffer.AddTx(tx)
 }
 
+//HandleNewOSFile takes in a filename and gets
+//the corresponding named file from the shared file of
+//the gossiper and splits it into chunks and adds
+//the chunks and hash to the memory of the Gossiper
 func (g *Gossiper) HandleNewOSFile(fn string) {
 	dir, err := filepath.Abs(filepath.Dir(os.Args[0]))
 	if err != nil {
@@ -100,6 +109,10 @@ func (g *Gossiper) HandleNewOSFile(fn string) {
 		HashOfMetaFile: hexHash,
 	}
 	g.Files[mf.HashOfMetaFile] = *mf
+	file := transactions.NewFile(fn, fSize, hashMFBs)
+	tx := transactions.NewTransaction(file, hoplimit)
+	g.BroadCastTxPublish(tx, "")
+	g.TransactionBuffer.AddTx(tx)
 }
 
 //CreateChunkmap takes in the metafile corresponding to a file
@@ -110,12 +123,13 @@ func (g *Gossiper) CreateChunkmap(metafile []byte) []uint64 {
 	//I know the Metafile is a multiple of 32
 	n := uint64(len(metafile)) / 32
 	temp := make([]uint64, 0)
-	for i := uint64(0); i < n-1; i++ {
+	for i := uint64(0); i < n; i++ {
 		j := i + 1
+		//Each chunks is exactly 32 bytes. That is why I have 32
 		hx := hex.EncodeToString(metafile[i*32 : j*32])
 		_, ok := chunks[hx]
 		if ok {
-			temp = append(temp, i)
+			temp = append(temp, j)
 		}
 	}
 	return temp

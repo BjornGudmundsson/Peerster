@@ -6,6 +6,8 @@ import (
 	"net"
 
 	"github.com/BjornGudmundsson/Peerster/data"
+	"github.com/BjornGudmundsson/Peerster/data/blockchain"
+	"github.com/BjornGudmundsson/Peerster/data/transactions"
 	"github.com/dedis/protobuf"
 )
 
@@ -29,6 +31,11 @@ type Gossiper struct {
 	MetaFileHashes        data.MetaFileHashes
 	StateFileFinder       data.StateFileFinder
 	HandlerDataReplies    data.HandlerDataReplies
+	RecentRequest         data.RecentRequests
+	ChunkToPeer           *data.ChunkToPeer
+	FoundFileRepository   data.FoundFileRepository
+	BlockChain            *blockchain.BlockChain
+	TransactionBuffer     *transactions.TransactionBuffer
 }
 
 //NewGossiper is a function that returns a pointer
@@ -67,6 +74,11 @@ func NewGossiper(address, name string, neighbours []string, p int) *Gossiper {
 	mfh := data.NewMetaFileHashes()
 	sff := data.NewStateFileFinder()
 	hdr := data.NewHandlerDataReplies()
+	recentrequests := data.NewRecentRequests()
+	ctp := data.NewChunkToPeer()
+	ffr := data.NewFoundFileRepository()
+	bc := blockchain.NewBlockChain()
+	txb := transactions.NewBuffer()
 	return &Gossiper{
 		Name:                  name,
 		address:               udpaddr,
@@ -85,6 +97,11 @@ func NewGossiper(address, name string, neighbours []string, p int) *Gossiper {
 		MetaFileHashes:        mfh,
 		StateFileFinder:       sff,
 		HandlerDataReplies:    hdr,
+		RecentRequest:         recentrequests,
+		ChunkToPeer:           ctp,
+		FoundFileRepository:   ffr,
+		BlockChain:            bc,
+		TransactionBuffer:     txb,
 	}
 }
 
@@ -127,7 +144,7 @@ func (g *Gossiper) ReceiveMessages() {
 //for the number of hits
 //required to be satisfied
 //with the  search
-const threshold int = 2
+const threshold uint64 = 2
 
 //This is the maximum of requests
 //I'll send if the budget was not specified

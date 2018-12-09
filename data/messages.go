@@ -3,6 +3,8 @@ package data
 import (
 	"fmt"
 	"sync"
+
+	"github.com/BjornGudmundsson/Peerster/data/transactions"
 )
 
 //TextMessage just a way to store a
@@ -48,6 +50,8 @@ type GossipPacket struct {
 	DataReply      *DataReply
 	SearchReply    *SearchReply
 	SearchRequest  *SearchRequest
+	TxPublish      *transactions.TxPublish
+	BlockPublish   *transactions.BlockPublish
 }
 
 //MessageHolder Assures a more concurrent access to

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"net"
+	"strings"
 
 	"github.com/BjornGudmundsson/Peerster/data"
 	"github.com/dedis/protobuf"
@@ -20,6 +21,7 @@ func main() {
 	keywords := flag.String("keywords", "", "The keywords to search for a file by")
 	budget := flag.Int("budget", 2, "The budget for a request")
 	flag.Parse()
+	fmt.Println(strings.Split(*keywords, ","))
 	sendMessage(*UIPort, *msg, *ip, *dst, *file, *req, *keywords, uint64(*budget))
 }
 

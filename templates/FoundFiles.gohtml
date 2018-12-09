@@ -1,0 +1,17 @@
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+
+  <title>The HTML5 Herald</title>
+  <meta name="description" content="The HTML5 Herald">
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+</head>
+
+<body>
+    <h1>Bjorn</h1>
+    {{range $key, $msg := .}}
+        <p>Bjorn</p>
+        <a href='/FoundFile?name={{$key}}'>See matches for {{$key}}</a>
+    {{end}}
+</body>
+</html>

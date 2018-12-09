@@ -46,7 +46,7 @@ $('#messageForm').submit(function(e){
     });
 });
 
-$('#fileRequestForm').submit(function(e){
+$('#downloadForm').submit(function(e){
     e.preventDefault();
     $.ajax({
         url:'/RequestFile',

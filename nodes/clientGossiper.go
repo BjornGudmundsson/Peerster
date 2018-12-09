@@ -74,6 +74,22 @@ func (g *Gossiper) ServeHTTP(wr http.ResponseWriter, req *http.Request) {
 		g.GetFiles(wr, req)
 		return
 	}
+	if route == "/GetFoundFiles" {
+		g.GetFoundFiles(wr, req)
+		return
+	}
+	if route == "/FoundFile" {
+		g.GetFoundFile(wr, req)
+		return
+	}
+	if route == "/GetFoundFileJS" {
+		g.GetFoundFilesJS(wr, req)
+		return
+	}
+	if route == "/DownloadFoundFile" {
+		g.DownloadFoundFile(wr, req)
+		return
+	}
 }
 
 var tpl *template.Template
@@ -138,6 +154,10 @@ func (g *Gossiper) GetRoutingTableJS(wr http.ResponseWriter, req *http.Request) 
 	http.ServeFile(wr, req, "scripts/routingTable.js")
 }
 
+func (g *Gossiper) GetFoundFilesJS(wr http.ResponseWriter, req *http.Request) {
+	http.ServeFile(wr, req, "scripts/foundFiles.js")
+}
+
 type privateMsg struct {
 	Name     string
 	Messages []string
@@ -184,7 +204,6 @@ func (g *Gossiper) AddFile(wr http.ResponseWriter, req *http.Request) {
 		log.Fatal(e)
 	}
 	g.HandleNewFile(fileHeader, file)
-	fmt.Println(g.Chunks)
 }
 
 func (g *Gossiper) RequestFile(wr http.ResponseWriter, req *http.Request) {
@@ -198,7 +217,16 @@ func (g *Gossiper) RequestFile(wr http.ResponseWriter, req *http.Request) {
 	}
 	g.Files[fn] = md
 	dst := req.FormValue("destination")
-	go g.DownloadingFile(fn, dst)
+	if dst != "" {
+		g.ChunkToPeer.SetOwnerOfMetafileHash(mf, dst)
+		g.ChunkToPeer.AddOwnerForMetafileHash(dst, mf)
+	}
+	go g.DownloadingFile(fn)
+}
+
+func (g *Gossiper) DownloadFoundFile(wr http.ResponseWriter, req *http.Request) {
+	fn := req.FormValue("name")
+	go g.DownloadingFile(fn)
 }
 
 func (g *Gossiper) GetMetaFiles(wr http.ResponseWriter, req *http.Request) {
@@ -209,4 +237,24 @@ func (g *Gossiper) GetMetaFiles(wr http.ResponseWriter, req *http.Request) {
 func (g *Gossiper) GetFiles(wr http.ResponseWriter, req *http.Request) {
 	chunks := g.Chunks
 	tpl.ExecuteTemplate(wr, "TextOfFiles.gohtml", chunks)
+}
+
+func (g *Gossiper) GetFoundFiles(wr http.ResponseWriter, req *http.Request) {
+	foundfiles := g.FoundFileRepository
+	tpl.ExecuteTemplate(wr, "FoundFiles.gohtml", foundfiles)
+}
+
+type tempStruct struct {
+	Name    string
+	Matches []data.FoundFile
+}
+
+func (g *Gossiper) GetFoundFile(wr http.ResponseWriter, req *http.Request) {
+	name := req.URL.Query()["name"][0]
+	matches := g.FoundFileRepository[name]
+	ts := tempStruct{
+		Name:    name,
+		Matches: matches,
+	}
+	tpl.ExecuteTemplate(wr, "FoundFile.gohtml", ts)
 }

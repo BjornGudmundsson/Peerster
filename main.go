@@ -24,7 +24,6 @@ func main() {
 	go g.TCPServer(*port + 1)
 	go g.RumourChatting(*rtTimer)
 	go g.AntiEntropy()
-	for {
-	}
+	g.MiningThread()
 
 }

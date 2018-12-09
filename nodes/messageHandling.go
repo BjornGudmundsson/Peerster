@@ -2,6 +2,7 @@ package nodes
 
 import (
 	"fmt"
+	"math/rand"
 
 	"github.com/BjornGudmundsson/Peerster/data"
 )
@@ -35,6 +36,13 @@ func (g *Gossiper) delegateMessages(ch chan GossipAddress) {
 			if msg.Msg.SearchRequest != nil {
 				go g.HandleSearchRequest(msg)
 			}
+
+			if msg.Msg.BlockPublish != nil {
+				go g.HandleBlockPublish(msg)
+			}
+			if msg.Msg.TxPublish != nil {
+				go g.HandleTxPublish(msg)
+			}
 		}
 	}
 }
@@ -55,8 +63,17 @@ func (g *Gossiper) handleRumourMessage(msg GossipAddress) {
 	}
 	isNew := g.Messages.CheckIfMsgIsNew(rm)
 	if rm.Text == "" {
-		if isNew {
+
+		if isNew && rm.Origin != g.Name {
 			g.RoutingTable.UpdateRoutingTable(rm.Origin, addr)
+		}
+		peers := g.Neighbours.GetAllNeighboursWithException(addr)
+		for _, peer := range peers {
+			ran := rand.Int() % 2
+			if ran == 0 {
+				break
+			}
+			g.sendMessageToNeighbour(gp, peer)
 		}
 		return
 	}
@@ -67,7 +84,9 @@ func (g *Gossiper) handleRumourMessage(msg GossipAddress) {
 		return
 	}
 	if isNew {
-		g.Messages.AddAMessage(rm)
+		if rm.Text != "" {
+			g.Messages.AddAMessage(rm)
+		}
 		g.RoutingTable.UpdateRoutingTable(rm.Origin, addr)
 		myMsgs := g.Messages.GetMessageVector()
 		sp := data.GetStatusPacketFromVector(myMsgs)

@@ -14,6 +14,15 @@ type Neighbours struct {
 	mux           sync.Mutex
 }
 
+func Shuffle(s []string) []string {
+	perm := rand.Perm(len(s))
+	temp := make([]string, len(s))
+	for i := range s {
+		temp[i] = s[perm[i]]
+	}
+	return temp
+}
+
 //GetAllNeighboursWithException is a function bound to a Neighbours struct
 //that returns the list of all neighbours with the exception of a specified neighbour
 func (n *Neighbours) GetAllNeighboursWithException(addr string) []string {
@@ -23,7 +32,7 @@ func (n *Neighbours) GetAllNeighboursWithException(addr string) []string {
 			temp = append(temp, key)
 		}
 	}
-	return temp
+	return Shuffle(temp)
 }
 
 //AddANeighbour adds a new neighbour to the map

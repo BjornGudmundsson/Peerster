@@ -12,6 +12,10 @@ import (
 func (g *Gossiper) HandleSearchReply(msg GossipAddress) {
 	sr := msg.Msg.SearchReply
 	dst := sr.Destination
+	if sr.Origin == g.Name {
+		//Why am I getting a search reply from myself
+		return
+	}
 	g.RoutingTable.UpdateRoutingTable(sr.Origin, msg.Addr)
 	if g.Name == dst {
 		//Handle the datareply
@@ -38,14 +42,29 @@ func (g *Gossiper) HandleSearchReply(msg GossipAddress) {
 //ProcessDataReply handles the local processing of data
 //if the data is not supposed to be forwarded any further
 func (g *Gossiper) ProcessDataReply(msg data.SearchReply) {
+	msg.Print()
 	src := msg.Origin
 	results := msg.Results
 	for _, result := range results {
-		metafilehash := result.MetafileHash
-		hexHash := hex.EncodeToString(metafilehash)
-		hasMetafile := g.StateFileFinder.HasMetaFile(hexHash)
-		if !hasMetafile {
-			go g.RequestMetaFile(src, *result)
+		metafilehash := hex.EncodeToString(result.MetafileHash)
+		chunkMap := result.ChunkMap
+		chunkCount := result.ChunkCount
+		filename := result.FileName
+		_, ok := g.Files[filename]
+		if !ok {
+			md := data.MetaData{
+				FileSize:       chunkCount,
+				FileName:       filename,
+				HashOfMetaFile: metafilehash,
+			}
+			g.Files[filename] = md
+		}
+		g.FoundFileRepository.AddSearchReply(result, src)
+		//Adding so that this Peerster know that this chunk
+		//of this metafile resides at this origin
+		g.ChunkToPeer.AddOwnerForMetafileHash(src, metafilehash)
+		for _, index := range chunkMap {
+			g.ChunkToPeer.AddOwnerTochunk(metafilehash, index, src)
 		}
 	}
 }
@@ -76,4 +95,19 @@ func (g *Gossiper) RequestMetaFile(src string, result data.SearchResult) {
 		}
 	}
 	g.StateFileFinder.AddOrigin(result.FileName, src, result.ChunkMap)
+}
+
+//SendSearchReply is an abstraction of sending a searchreply to
+//its supposed destination.
+func (g *Gossiper) SendSearchReply(searchReply *data.SearchReply) {
+	dst := searchReply.Destination
+	nxtHop, ok := g.RoutingTable.Table[dst]
+	if !ok {
+		//Don't know why this would be happening but whatever
+		return
+	}
+	gp := &data.GossipPacket{
+		SearchReply: searchReply,
+	}
+	g.sendMessageToNeighbour(gp, nxtHop)
 }
