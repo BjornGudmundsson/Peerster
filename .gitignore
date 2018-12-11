@@ -1,2 +1,9 @@
 *.exe
 *.txt
+
+# LaTeX stuff
+*.aux
+*.log
+*.out
+*.pdf
+*.toc
