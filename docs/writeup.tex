@@ -52,6 +52,8 @@ Distributed hash tables have been used in centralized as well as decentralized a
 On the decentralized side, one use is BitTorrent's \emph{Mainline DHT}, which is used to track which peers have which file.
 This allows a client to download files without the need for a central server that knows where files reside.
 
+Other implementations include \emph{Freenet} and \emph{Tox}.
+
 \subsection{Cryptography}
 
 This idea was loosely inspired by the work done by the DEDIS lab at EPFL on the Calypso project. A paper on Calypso can be found here on the Calypso framework. They implemented a system that allows for distributed secret sharing while using threshold cryptography to ensure confidentiality. They use a blockchain for distributed secret sharing which allows for a more fault tolerant access to the data and does not require the sharer to be online in the system for the reader of the secret to be able to decrypt it but a drawback of this approach is that it puts an artificial limit on the size of the secrets a participant wishes to share while our approach uses a distributed hash table to store encrypted chunks of a file allowing for larger secrets to be shared amongst peers since the load of storage is distributed (hopefully) evenly amongst the nodes of the network. Another deviation is that our approach does not rely on threshold cryptography to ensure the confidentiality of the secret encryption key but rather a simple point-to-point system where the secret is encrypted using a nodes public key. Any node that gets the symmetric key is therefore able to retrieve the contents of the shared file from the distributed hash table and decrypt it.
@@ -62,15 +64,19 @@ Implementing a blockchain with the purpose of having a shared status in which al
 
 \section{System goals, functionalities and architecture}
 
-Goals of our project, functionalities.
-Overall architecture, how do the parts work together?
-Draw a diagram.
-[Stuff related to the project as a whole can go here, and stuff related to a particular part goes in the subsections below.]
+I general, we want to achieve reliability, robustness, scalability, integrity and confidentiality.
+How we want to achieve these goals is described in the following.
+We also want to allow for a node to join or leave the network at any time.
 
 \subsection{Distributed hash table: Lukas}
 
 We will use SHA-256 hashes in our hash table, as in previous versions of Peerster.
-Since we want
+The values in our hash table correspond to file chunks.
+Since we want to allow for nodes to leave the network without warning, every chunk must be stored at two or more nodes.
+It is not yet decided which exact implementation of hash tables we will use.
+
+A node can opt out of hosting file chunks and being a part of the hash table by using the command-line flag \texttt{-nohost}.
+It can still download files in this mode.
 
 \subsection{Cryptography: Björn}
 
@@ -94,12 +100,10 @@ As we are working in a group of 3 members, the blockchain part will offer an int
  \item Get someones public key: In order to decrypt messages and confirm the source of a message the interface will offer the option to get the public key from the node's name.
 \end{itemize}
 
-We have already implement a blockchain for homework 3. In that blockchain we had to suppose that all nodes were available from the beginning because we didn't had any way to request the old blocks that had been added to the chain.
+We have already implemented a blockchain for homework 3. In that blockchain we had to suppose that all nodes were available from the beginning because we didn't had any way to request the old blocks that had been added to the chain.
 So, if a peer joined to an already ruining network it would had to accept the first block received (because it didn't had any way to validate the block). \\
 
 
 For this part of our project, we want to add a protocol to be able to request a certain block. With that protocol a peer will be always able to reconstruct the longest chain and, therefore, join later to a network or have a failure and restart.
-
-[\textasciitilde{}0.5 pages]
 
 \end{document}
