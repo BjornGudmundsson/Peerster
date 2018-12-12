@@ -27,84 +27,81 @@ In our group project, we will improve Peerster's file-sharing capabilities by ma
     \item Chunks are transferred and stored by hosts in an encrypted manner to guarantee confidentiality.
     In addition, each chunk gets a cryptographic signature to ensure integrity.
     \item Peerster's blockchain is augmented to store information about the nodes, such as their public keys.
+    We also add the ability for new nodes joining the network to request older blocks that they haven't seen yet.
 \end{itemize}
 
 \section{Related work}
 
 The central theme at the heart of our project is peer-to-peer file sharing, which has been around for decades and has been explored extensively.
 Napster, released in 1999, was one of the services that popularized peer-to-peer file sharing over the Internet.
-It used a centralized model, where a central server connected users searching for a file with peers providing the same file.
+It used a centralized architecture, where a central server connected users searching for a file with peers providing the same file.
+Our project, on the other hand, remains a fully decentralized system.
 
-``If other people have also tried to solve this problem (which they most probably have), what
-are the main approaches that they use and what are their drawbacks and limitations?
-Try to summarize the main idea of their approaches and describe how your approach compares to
-theirs.''
-[Stuff related to the project as a whole can go here, and stuff related to a particular part goes in the subsections below.]
+Quite soon after Napster, decentralized peer-to-peer file-sharing systems came along, such as Gnutella\footnote{For information on Gnutella's protocol, see \url{https://courses.cs.washington.edu/courses/cse522/05au/gnutella\_protocol\_0.4.pdf}} and BitTorrent.
+Both of them allow anyone to share their files with the world.
+In Gnutella, whole files are typically downloaded from a single source peer.
+This has the disadvantage that a peer hosting a popular file on a weak connection can be overloaded quickly.
+In BitTorrent, on the other hand, file are broken down into chunks, which in BitTorrent are called \emph{pieces} or \emph{blocks}.
+These chunks can be independently downloaded from different peers.
 
-[\textasciitilde{}0.5 pages]
+In the following, we will describe existing solutions related to the three parts of our project: the distributed hash table, cryptographic features and the blockchain.
 
-\subsection{Part A (Hash-table-related: Lukas)}
+\subsection{Distributed hash table}
 
-[\textasciitilde{}0.33 pages]
+Distributed hash tables have been used in centralized as well as decentralized applications.
+On the decentralized side, one use is BitTorrent's \emph{Mainline DHT}, which is used to track which peers have which file.
+This allows a client to download files without the need for a central server that knows where files reside.
 
-\subsection{Part B (Cryptography-related: Björn)}
-Related work
-This idea was loosely inspired by the work done by the DEDIS lab at EPFL on the Calypso project. A paper on Calypso can be found \href{https://eprint.iacr.org/2018/209.pdf}{here} on the Calypso framework. They implemented a system that allows for distributed secret sharing while using threshold cryptography to ensure confidentiality. They use a blockchain for distributed secret sharing which allows for a more fault tolerant access to the data and does not require the sharer to be online in the system for the reader of the secret to be able to decrypt it but a drawback of this approach is that it puts an artificial limit on the size of the secrets a participant wishes to share while our approach uses a distributed hash table to store encrypted chunks of a file allowing for larger secrets to be shared amongst peers since the load of storage is distributed (hopefully) evenly amongst the nodes of the network. Another deviation is that our approach does not rely on threshold cryptography to ensure the confidentiality of the secret encryption key but rather a simple point-to-point system where the secret is encrypted using a nodes public key. Any node that gets the symmetric key is therefore able to retrieve the contents of the shared file from the distributed hash table and decrypt it.  
+Other implementations include \emph{Freenet} and \emph{Tox}.
 
-[\textasciitilde{}0.33 pages] 
+\subsection{Cryptography}
 
-A node may not completely trust all of the nodes in the system and would therefore like to verify if a private message is from the node person it proclaims to be. Our system would provide a signature scheme such that a user can easily verify if the person sending him a message is who he claims to be by checking the signature of the message. A signature scheme would be something like this: A user sends a private message to a node and encrypts the public key of the node it is sending the message to and sends it to the node. The receiving node will decrypt the message using the sender’s  public key and verify that it is a valid signature. The signature generation scheme would have to be non-deterministic such that an adversary would not be able to spoof any future message and give him a key to a malicious file. The receiving node would also have to keep state of old signatures to mitigate the effects of signature spoofing.
+This idea was loosely inspired by the work done by the DEDIS lab at EPFL on the Calypso project\footnote{See \url{https://github.com/dedis/cothority/tree/master/calypso}}. They implemented a system that allows for distributed secret sharing while using threshold cryptography to ensure confidentiality. They use a blockchain for distributed secret sharing which allows for a more fault tolerant access to the data and does not require the sharer to be online in the system for the reader of the secret to be able to decrypt it but a drawback of this approach is that it puts an artificial limit on the size of the secrets a participant wishes to share while our approach uses a distributed hash table to store encrypted chunks of a file allowing for larger secrets to be shared amongst peers since the load of storage is distributed (hopefully) evenly amongst the nodes of the network. Another deviation is that our approach does not rely on threshold cryptography to ensure the confidentiality of the secret encryption key but rather a simple point-to-point system where the secret is encrypted using a nodes public key. Any node that gets the symmetric key is therefore able to retrieve the contents of the shared file from the distributed hash table and decrypt it.
 
-\subsection{Part C (Blockchain-related: Gerard)}
+\subsection{Blockchain}
 
 Implementing a blockchain with the purpose of having a shared status in which all the nodes can trust is a problem that have been solved several times. The main example when talking about blockchain is Bitcoin. Bitcoin uses a proof of work that consist in calculate a hash SHA-256 starting in a determined number of 0 bits. It also uses a genesis block mined by its creator and has a protocol to request a certain missing block to another node.
 
-[\textasciitilde{}0.33 pages]
-
 \section{System goals, functionalities and architecture}
 
-Goals of our project, functionalities.
-Overall architecture, how do the parts work together?
-Draw a diagram.
-[Stuff related to the project as a whole can go here, and stuff related to a particular part goes in the subsections below.]
+I general, we want to achieve reliability, robustness, scalability, integrity and confidentiality.
+How we want to achieve these goals is described in the following.
+We also want to allow for a node to join or leave the network at any time.
 
-[\textasciitilde{}1.5 pages]
+\subsection{Distributed hash table: Lukas}
 
-\subsection{Part A (Hash-table-related)}
+We will use SHA-256 hashes in our hash table, as in previous versions of Peerster.
+The values in our hash table correspond to file chunks.
+Since we want to allow for nodes to leave the network without warning, every chunk must be stored at two or more nodes.
+It is not yet decided which exact implementation of hash tables we will use.
 
-[\textasciitilde{}0.5 pages]
+A node can opt out of hosting file chunks and being a part of the hash table by using the command-line flag \texttt{-nohost}.
+It can still download files in this mode.
 
-\subsection{Part B (Cryptography-related)}
+\subsection{Cryptography: Björn}
 
-\section{System goals, functionalities and architecture}
+The system I plan to implement will be the cryptographic parts of the system. A user should be able to index a file, split it into chunks and then encrypt all the chunks using a symmetric key(a key and a nonce) generated on a per file basis. After indexing and encrypting the user can then share the chunks to be stored in a distributed hash table for future downloads. A user should be able to pick and choose which peers can decrypt the contents of the file so the system will have to implement some level of point to point confidentiality. To achieve such functionality, every node will have a public/private key pair and the identity of a node and its corresponding public key will be logged on a blockchain for everyone to confirm the identity of a public key.
 
-System goals and functionalities
-The system I plan to implement will be the cryptographic parts of the system. A user should be able to index a file, split it into chunks and then encrypt all the chunks using a symmetric key(a key and a nonce) generated on a per file basis. After indexing and encrypting the user can then share the chunks to be stored in a distributed hash table for future downloads. A user should be able to pick and choose which peers can decrypt the contents of the file so the system will have to implement some level of point to point confidentiality. To achieve such functionality, every node will have a public/private key pair and the identity of a node and its corresponding public key will be logged on a blockchain for everyone to confirm the identity of a public key.  
+The encryption of a file would use a block cipher and a mode of operations to be able to decrypt files of varying lengths. The mode of operation will most likely be the CBC mode of operation due to the success it has, security level and the added benefit of being able to decrypt a file despite a chunk being corrupt or missing giving the liberty to the user to not possibly wait for the entire file to finish downloading and decrypt the file partially even though there may be blocks missing.
 
-The encryption of  a file would use a block cipher and a mode of operations to be able to decrypt files of varying lengths. The mode of operation will most likely be the CBC mode of operation due to the success it has, security level and the added benefit of being able to decrypt a file despite a chunk being corrupt or missing giving the liberty to the user to not possibly wait for the entire file to finish downloading and decrypt the file partially even though there may be blocks missing. 
+A user may wish to share the file with many users asynchronously(not all at the same time) without overstressing the network and having to store the file multiple times encrypted with different keys. Therefore our implementation will have to make sure that no information about the key can be retrieved while sending it between nodes. One method of achieving that would be to send the symmetric keys and a unique identifier to a node directly and then that node can decrypt the file whenever it chooses. In order to avoid leaking information about the key or the metafile then we would use a non-deterministic encryption system to encrypt the private messages with the recipients public key. A non-deterministic encryption system would help mitigate the effect of a known-ciphertext attack since the ciphertext are non-deterministic from the plaintext.
 
-A user may wish to share the file with many users asynchronously(not all at the same time) without overstressing the network and having to store the file multiple times encrypted with different keys. Therefore our implementation will have to make sure that no information about the key can be retrieved while sending it between nodes. One method of achieving that would be to send the symmetric keys and a unique identifier to a node directly and then that node can decrypt the file whenever it chooses. In order to avoid leaking information about the key or the metafile then we would use a non-deterministic encryption system to encrypt the private messages with the recipients public key. A non-deterministic encryption system would help mitigate the effect of a known-ciphertext attack since the ciphertext are non-deterministic from the plaintext
+A node may not completely trust all of the nodes in the system and would therefore like to verify if a private message is from the node person it proclaims to be. Our system would provide a signature scheme such that a user can easily verify if the person sending him a message is who he claims to be by checking the signature of the message. A signature scheme would be something like this: A user sends a private message to a node and encrypts the public key of the node it is sending the message to and sends it to the node. The receiving node will decrypt the message using the sender's public key and verify that it is a valid signature. The signature generation scheme would have to be non-deterministic such that an adversary would not be able to spoof any future message and give him a key to a malicious file. The receiving node would also have to keep state of old signatures to mitigate the effects of signature spoofing.
 
-[\textasciitilde{}0.5 pages]
+\subsection{Blockchain: Gerard}
 
-\subsection{Part C (Blockchain-related)}
+In order to be able to share with all the nodes a public key and in order to map it to an unique node, we will implement a blockchain system.
 
-In order to be able to share with all the nodes a public key and in order to map it to an unique node, we will implement a blockchain system. 
-
-As we are working in a group of 3 members, the blockchain part will offer an interface to communicate with it, so the others parts of the project doesn't have to understand or deal with the interiorities of it. This interface should support 2 basic functionalities:
+As we are working in a group of three members, the blockchain part will offer an interface to communicate with it, so the others parts of the project doesn't have to understand or deal with the interiorities of it. This interface should support two basic functionalities:
 
 \begin{itemize}
  \item Add a public key: Any node has to be able to add its public key to the blockchain. This public key have to be unique in the blockchain.
-
  \item Get someones public key: In order to decrypt messages and confirm the source of a message the interface will offer the option to get the public key from the node's name.
 \end{itemize}
 
-We have already implement a blockchain for homework 3. In that blockchain we had to suppose that all nodes were available from the beginning because we didn't had any way to request the old blocks that had been added to the chain. 
-So, if a peer joined to an already ruining network it would had to accept the first block received (because it didn't had any way to validate the block). \\
+We have already implemented a blockchain for homework 3. In that one we had to suppose that all nodes were available from the beginning, because we didn't have any way to request the old blocks that had been added to the chain.
+So, if a peer joined to an already ruining network it would had to accept the first block received (because it didn't have any way to validate the block).
 
-
-For this part of our project, we want to add a protocol to be able to request a certain block. With that protocol a peer will be always able to reconstruct the longest chain and, therefore, join later to a network or have a failure and restart.
-
-[\textasciitilde{}0.5 pages]
+For this part of our project, we want to add a protocol to be able to request a certain block. With that protocol, a peer will be always able to reconstruct the longest chain and, therefore, join later to a network or have a failure and restart.
 
 \end{document}
