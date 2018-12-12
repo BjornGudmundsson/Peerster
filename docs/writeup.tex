@@ -8,7 +8,7 @@
 \usepackage[draft=false]{hyperref}
 
 \title{Decentralized Systems Engineering~--- Project write-up}
-\author{Björn, Gerard, Lukas}
+\author{Björn, Gerard and Lukas}
 \date{December~12, 2018}
 
 \begin{document}
@@ -16,19 +16,24 @@
 \maketitle
 \tableofcontents
 
-% \vspace{3ex}
-
 \section{Introduction}
 
-In our group project, we will improve Peerster's file sharing capabilities by making the service more reliable, more scalable and more secure.
-The starting point is to let a user allow files to be hosted by other nodes, not just the user's own node.
-To improve scalability and to allow better distribution of the hosts' workload, a file's chunks are all hosted by the same node, but rather by different nodes.
-This is done by storing chunks in a distributed hash table.
-...
+In our group project, we will improve Peerster's file-sharing capabilities by making the service more reliable, more scalable and more secure:
 
-[\textasciitilde{}1 paragraph]
+\begin{itemize}
+    \item To improve scalability and to distribute the workload among hosts, a file's chunks aren't all hosted by the same node, but rather by multiple nodes.
+    This is done by storing the chunks in a distributed hash table when a user want to share a file.
+    The hash table uses redundancy to prevent data loss in the case that a node shuts down.
+    \item Chunks are transferred and stored by hosts in an encrypted manner to guarantee confidentiality.
+    In addition, each chunk gets a cryptographic signature to ensure integrity.
+    \item Peerster's blockchain is augmented to store information about the nodes, such as their public keys.
+\end{itemize}
 
 \section{Related work}
+
+The central theme at the heart of our project is peer-to-peer file sharing, which has been around for decades and has been explored extensively.
+Napster, released in 1999, was one of the services that popularized peer-to-peer file sharing over the Internet.
+It used a centralized model, where a central server connected users searching for a file with peers providing the same file.
 
 ``If other people have also tried to solve this problem (which they most probably have), what
 are the main approaches that they use and what are their drawbacks and limitations?
