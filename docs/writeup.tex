@@ -43,11 +43,11 @@ theirs.''
 
 [\textasciitilde{}0.5 pages]
 
-\subsection{Part A (Hash-table-related)}
+\subsection{Part A (Hash-table-related: Lukas)}
 
 [\textasciitilde{}0.33 pages]
 
-\subsection{Part B (Cryptography-related)}
+\subsection{Part B (Cryptography-related: Björn)}
 Related work
 This idea was loosely inspired by the work done by the DEDIS lab at EPFL on the Calypso project. A paper on Calypso can be found here on the Calypso framework. They implemented a system that allows for distributed secret sharing while using threshold cryptography to ensure confidentiality. They use a blockchain for distributed secret sharing which allows for a more fault tolerant access to the data and does not require the sharer to be online in the system for the reader of the secret to be able to decrypt it but a drawback of this approach is that it puts an artificial limit on the size of the secrets a participant wishes to share while our approach uses a distributed hash table to store encrypted chunks of a file allowing for larger secrets to be shared amongst peers since the load of storage is distributed (hopefully) evenly amongst the nodes of the network. Another deviation is that our approach does not rely on threshold cryptography to ensure the confidentiality of the secret encryption key but rather a simple point-to-point system where the secret is encrypted using a nodes public key. Any node that gets the symmetric key is therefore able to retrieve the contents of the shared file from the distributed hash table and decrypt it.  
 
