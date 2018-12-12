@@ -45,11 +45,15 @@ func (g *Gossiper) StartMining() {
 		block := transactions.MineABlock(newTransactions, prev)
 		// fmt.Println("valid-start")
 		if transactions.IsValidBlock(block) {
+			if g.BlockChain.LongestIndex == 0 {
+				time.Sleep(5 * time.Second)
+			} else {
+				miningTime := time.Since(start)
+				time.Sleep(miningTime)
+			}
 			hash := block.Hash()
 			hx := hex.EncodeToString(hash[:])
 			fmt.Println("FOUND BLOCK [", hx, "]")
-			miningTime := time.Since(start)
-			time.Sleep(miningTime)
 			if g.BlockChain.HasBlock(block) {
 				g.TransactionBuffer.Clear()
 				//Because GetNonce is pseudo random can be a bitch
