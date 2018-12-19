@@ -36,6 +36,8 @@ type Gossiper struct {
 	FoundFileRepository   data.FoundFileRepository
 	BlockChain            *blockchain.BlockChain
 	TransactionBuffer     *transactions.TransactionBuffer
+	RumourHolder          *data.RumourHolder
+	StatusPeers           *data.StatusPeers
 }
 
 //NewGossiper is a function that returns a pointer
@@ -79,6 +81,8 @@ func NewGossiper(address, name string, neighbours []string, p int) *Gossiper {
 	ffr := data.NewFoundFileRepository()
 	bc := blockchain.NewBlockChain()
 	txb := transactions.NewBuffer()
+	rh := data.NewRumourHolder()
+	sp := data.NewStatusPeers()
 	return &Gossiper{
 		Name:                  name,
 		address:               udpaddr,
@@ -102,6 +106,8 @@ func NewGossiper(address, name string, neighbours []string, p int) *Gossiper {
 		FoundFileRepository:   ffr,
 		BlockChain:            bc,
 		TransactionBuffer:     txb,
+		RumourHolder:          rh,
+		StatusPeers:           sp,
 	}
 }
 
