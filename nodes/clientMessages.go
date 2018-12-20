@@ -47,7 +47,7 @@ func (g *Gossiper) ClientGossiperHandling(temp data.TextMessage) *GossipAddress 
 		ID:     id,
 		Text:   temp.Msg,
 	}
-	g.Messages.AddAMessage(*rm)
+	g.RumourHolder.AddRumour(*rm)
 	gp := &data.GossipPacket{
 		Rumour: rm,
 	}

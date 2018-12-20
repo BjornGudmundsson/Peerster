@@ -38,20 +38,11 @@ const antiEntropy time.Duration = 1
 //interval of all messages that this gossiper has as
 //of sending that StatusPacket
 func (g *Gossiper) AntiEntropy() {
-	usedPeers := make(map[string]bool)
 	for {
 		time.Sleep(antiEntropy * time.Second)
-		g.enPeer.ResetEntropyPeer()
-		//Basically this just gives a me a random neighbour. Re-using
-		//the same function with an empty map so I could send it out to anyone
-		//of my neighbours
-		randPeer := g.Neighbours.RandomIndexOutOfNeighbours(usedPeers)
-		messageVector := g.Messages.GetMessageVector()
-		sp := data.GetStatusPacketFromVector(messageVector)
-		gp := &data.GossipPacket{
-			Status: &sp,
-		}
-		g.enPeer.SetEntropyPeer(randPeer)
-		go g.sendMessageToNeighbour(gp, randPeer)
+		sp := g.RumourHolder.CreateStatusPacket()
+		peers := g.Neighbours.GetAllNeighboursWithException("")
+		randPeer := data.GetRandomStringFromSlice(peers)
+		g.SendStatusPacket(sp, randPeer)
 	}
 }

@@ -115,7 +115,7 @@ func (g *Gossiper) GetIndexJS(wr http.ResponseWriter, req *http.Request) {
 //GetMessages sends
 func (g *Gossiper) GetMessages(wr http.ResponseWriter, req *http.Request) {
 	//messages := g.Messages.GetMessageString()
-	a := g.Messages.GetMessagesInOrder()
+	a := g.RumourHolder.GetMessagesInOrder()
 	as := tplVars{
 		Name:     g.Name,
 		Messages: a,

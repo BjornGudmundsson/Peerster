@@ -2,7 +2,6 @@ package nodes
 
 import (
 	"fmt"
-	"math/rand"
 
 	"github.com/BjornGudmundsson/Peerster/data"
 )
@@ -56,47 +55,13 @@ func (g *Gossiper) handleSimpleMessage(msg GossipAddress) {
 func (g *Gossiper) handleRumourMessage(msg GossipAddress) {
 	gp := msg.Msg
 	addr := msg.Addr
-	rm := *gp.Rumour
-	enPeer := g.enPeer.EntropyPeer
-	if rm.Text != "" {
-		fmt.Printf("\nRUMOR origin %v from %v ID %v contents %v \n", rm.Origin, addr, rm.ID, rm.Text)
-	}
-	isNew := g.Messages.CheckIfMsgIsNew(rm)
-	if rm.Text == "" {
-
-		if isNew && rm.Origin != g.Name {
-			g.RoutingTable.UpdateRoutingTable(rm.Origin, addr)
-		}
-		peers := g.Neighbours.GetAllNeighboursWithException(addr)
-		for _, peer := range peers {
-			ran := rand.Int() % 2
-			if ran == 0 {
-				break
-			}
-			g.sendMessageToNeighbour(gp, peer)
-		}
-		return
-	}
-	if g.Status.IsMongering {
-		if addr == g.Status.GetIP() {
-			g.Mongering.Ch <- rm
-		}
-		return
-	}
+	rm := gp.Rumour
+	isNew := g.RumourHolder.IsNew(*rm)
 	if isNew {
-		if rm.Text != "" {
-			g.Messages.AddAMessage(rm)
-		}
-		g.RoutingTable.UpdateRoutingTable(rm.Origin, addr)
-		myMsgs := g.Messages.GetMessageVector()
-		sp := data.GetStatusPacketFromVector(myMsgs)
-		ngp := data.GossipPacket{
-			Status: &sp,
-		}
-		if addr != enPeer {
-			go g.sendMessageToNeighbour(&ngp, addr)
-		}
-		g.rumourMongering(&msg)
+		g.RumourHolder.AddRumour(*rm)
+		sp := g.RumourHolder.CreateStatusPacket()
+		g.SendStatusPacket(sp, addr)
+		go g.rumourMongering(rm, addr)
 	}
 
 }
@@ -129,21 +94,34 @@ func (g *Gossiper) handleStatusMessage(msg GossipAddress) {
 	PrintStatusPacket(msg)
 	addr := msg.Addr
 	m := msg.Msg
-	smap := TurnStatusIntoMap(*m.Status)
-	upToDate := g.CheckIfUpToDate(smap)
-	if upToDate {
-		fmt.Printf("\n IN SYNC WITH %v \n", addr)
+	sp := msg.Msg.Status
+	hasEntry := g.StatusPeers.HasEntry(addr)
+	if hasEntry {
+		g.StatusPeers.PassPacketToProcess(addr, *m)
 		return
 	}
-	if addr == g.Status.GetIP() {
-		g.Status.StatusChannel <- msg
+	fmt.Println("Not an entry")
+	upToDate := g.RumourHolder.CheckIfUpToDate(m.Status)
+	if upToDate {
+		fmt.Println("In sync with", addr)
 		return
+	}
+	peerNeeds := g.RumourHolder.GetRumoursPeerNeeds(sp)
+	if len(peerNeeds) != 0 {
+		//Sending a random rumour that the
+		randomRumour := data.GetRandomRumourFromSlice(peerNeeds)
+		fmt.Println("Random rumour: ", randomRumour)
+		g.rumourMongering(&randomRumour, "")
+	} else {
+		//Get the messages that I need if there were no messages that
+		//the other peer needs.
+		INeed := g.RumourHolder.CheckIfNeedMessages(sp)
+		IWant := INeed.Want
+		if len(IWant) != 0 {
+			g.SendStatusPacket(INeed, addr)
+		}
 	}
 
-	//Now I know that this status packet does not come from
-	//someone I am mongering with. That means this status
-	//packet is asking for messages
-	g.SendMessageThatPeerNeeds(msg)
 }
 
 //PrintStatusPacket prints a StatusPacket

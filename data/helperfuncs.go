@@ -1,6 +1,11 @@
 package data
 
+//This file is where I put helperfuncs.
+//I use it for one off function that help with
+//functionality
+
 import (
+	"math/rand"
 	"strconv"
 	"strings"
 )
@@ -17,6 +22,12 @@ func SplitIP(ip string) []byte {
 	}
 
 	return arr
+}
+
+//FlipACoin emulates flipping a coin
+func FlipACoin() bool {
+	r := rand.Int() % 2
+	return r == 0
 }
 
 //FormatPeers takes in a string of IP-addresses seperated by commas
@@ -62,4 +73,23 @@ func CreateBudgetList(n, m uint64) []uint64 {
 	temp[0] = t
 	temp[1] = t + (t % 2)
 	return temp
+}
+
+//GetRandomStringFromSlice returns a random string
+//from a slice of strings
+func GetRandomStringFromSlice(a []string) string {
+	n := len(a)
+	if n == 0 {
+		return ""
+	}
+	r := rand.Int() % n
+	return a[r]
+}
+
+//GetRandomRumourFromSlice returns a random rumour message from a
+//slice of rumour messages
+func GetRandomRumourFromSlice(a []RumourMessage) RumourMessage {
+	n := len(a)
+	r := rand.Int() % n
+	return a[r]
 }

@@ -182,7 +182,7 @@ func (g *Gossiper) ClientMessageReceived(port int) {
 		}
 		if temp.Dst == "" {
 			ga := g.ClientGossiperHandling(*temp)
-			go g.rumourMongering(ga)
+			go g.rumourMongering(ga.Msg.Rumour, "")
 		} else {
 			g.SendPrivateMessageFromUser(temp.Dst, temp.Msg)
 		}

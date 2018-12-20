@@ -1,6 +1,9 @@
 package data
 
-import "sync"
+import (
+	"fmt"
+	"sync"
+)
 
 //RumoursFromPeer checks if
 //it has seen this rumour before
@@ -42,16 +45,13 @@ func (rfp *RumoursFromPeer) AddRumour(rm RumourMessage) bool {
 }
 
 //GetRumoursFromIndex returns a list of all the rumours from a given index - 1
-func (rfp *RumoursFromPeer) GetRumoursFromIndex(nxt uint32) []RumourMessage {
-	tempRumours := make([]RumourMessage, 0)
+func (rfp *RumoursFromPeer) GetRumoursFromIndex(nxt uint32) *RumourMessage {
 	if nxt > rfp.Count {
+		//Returning an empty rumour message if it is higher
 		return nil
 	}
 	nxtIndex := nxt - 1
-	for i := nxtIndex; i < uint32(len(rfp.Messages)); i++ {
-		tempRumours = append(tempRumours, rfp.Messages[i])
-	}
-	return tempRumours
+	return &rfp.Messages[nxtIndex]
 }
 
 //RumourHolder holds all of the
@@ -73,6 +73,8 @@ func NewRumourHolder() *RumourHolder {
 
 //IsNew checks if the rumour is new to the rumour holder
 func (rh *RumourHolder) IsNew(rm RumourMessage) bool {
+	rh.mux.Lock()
+	defer rh.mux.Unlock()
 	src := rm.Origin
 	if _, ok := rh.Rumours[src]; ok {
 		rfp := rh.Rumours[src]
@@ -83,12 +85,19 @@ func (rh *RumourHolder) IsNew(rm RumourMessage) bool {
 
 //AddRumour adds a rumour to the RumourHolder struct
 func (rh *RumourHolder) AddRumour(rm RumourMessage) {
+	rh.mux.Lock()
+	defer rh.mux.Unlock()
 	src := rm.Origin
 	if rfp, ok := rh.Rumours[src]; ok {
-		rfp.AddRumour(rm)
+		added := rfp.AddRumour(rm)
+		if added {
+			rh.MessagesInOrder = append(rh.MessagesInOrder, rm)
+		}
+		fmt.Println(rfp.Count)
 	} else {
 		rfp := NewRumoursFromPeers()
 		added := rfp.AddRumour(rm)
+		fmt.Println(*rfp)
 		rh.Rumours[src] = rfp
 		if added {
 			rh.MessagesInOrder = append(rh.MessagesInOrder, rm)
@@ -131,11 +140,69 @@ func (rh *RumourHolder) GetRumoursPeerNeeds(sp *StatusPacket) []RumourMessage {
 		if !ok {
 			continue
 		}
-		rumours := rfp.GetRumoursFromIndex(nxt)
-		if rumours == nil {
+		rumour := rfp.GetRumoursFromIndex(nxt)
+		if rumour == nil {
 			continue
 		}
-		tempRumours = append(tempRumours, rumours...)
+		tempRumours = append(tempRumours, *rumour)
 	}
 	return tempRumours
+}
+
+//CheckIfNeedMessages checks the messages that this peer needs that are present
+//in the peerster.
+func (rh *RumourHolder) CheckIfNeedMessages(sp *StatusPacket) *StatusPacket {
+	var want []PeerStatus
+	for _, ps := range sp.Want {
+		src := ps.Identifier
+		nxt := ps.NextID
+		rfp, ok := rh.Rumours[src]
+		if !ok {
+			p := PeerStatus{
+				Identifier: src,
+				NextID:     1,
+			}
+			want = append(want, p)
+			continue
+		}
+		count := rfp.Count
+		if count < nxt {
+			p := PeerStatus{
+				Identifier: src,
+				NextID:     count + 1,
+			}
+			want = append(want, p)
+			continue
+		}
+	}
+	return &StatusPacket{
+		Want: want,
+	}
+}
+
+//CheckIfUpToDate checks if the rumour holder is up to date with
+//this statuspacket
+func (rh *RumourHolder) CheckIfUpToDate(sp *StatusPacket) bool {
+	want := sp.Want
+	fmt.Println(want)
+	counterMap := make(map[string]uint32)
+	for _, ps := range want {
+		counterMap[ps.Identifier] = ps.NextID
+	}
+	n1 := len(counterMap)
+	n2 := len(rh.Rumours)
+	if n1 != n2 {
+		return false
+	}
+
+	for name, rfp := range rh.Rumours {
+		nxt, ok := counterMap[name]
+		if !ok {
+			return false
+		}
+		if nxt != rfp.Count+1 {
+			return false
+		}
+	}
+	return true
 }
