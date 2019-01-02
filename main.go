@@ -24,7 +24,7 @@ func main() {
 	go g.ReceiveMessages()
 	go g.ClientMessageReceived(*port)
 	go g.TCPServer(*port + 1)
-	//go g.RumourChatting(*rtTimer)
+	go g.RumourChatting(*rtTimer)
 	go g.AntiEntropy()
 	g.MiningThread()
 

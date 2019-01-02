@@ -13,33 +13,27 @@ func (g *Gossiper) RumourChatting(rtTimer int) {
 	if rtTimer == 0 {
 		return
 	}
-	peers := g.Neighbours.Neighbours
+	counter := g.Counter.IncrementAndReturn()
+	peers := g.Neighbours.GetAllNeighboursWithException("")
 	startingRumour := &data.RumourMessage{
 		Origin: g.Name,
-		ID:     1,
+		ID:     counter,
 		Text:   "",
 	}
-	startingGossipPacket := &data.GossipPacket{
-		Rumour: startingRumour,
-	}
-	for peer := range peers {
-		g.sendMessageToNeighbour(startingGossipPacket, peer)
-	}
+	g.RumourHolder.AddRumour(*startingRumour)
+	p := data.GetRandomStringFromSlice(peers)
+	g.SendRumourMessage(startingRumour, p)
 	for {
+		time.Sleep(time.Duration(int64(rtTimer)) * time.Second)
 		//sendToEveryone
-		counter := g.Counter.ReturnCounter()
+		counter = g.Counter.IncrementAndReturn()
 		rm := &data.RumourMessage{
 			Origin: g.Name,
-			ID:     counter + 1,
+			ID:     counter,
 			Text:   "",
 		}
-		gp := &data.GossipPacket{
-			Rumour: rm,
-		}
-		//Going to broadcast the message to everyone
-		for peer := range peers {
-			g.sendMessageToNeighbour(gp, peer)
-		}
-		time.Sleep(time.Duration(int64(rtTimer)) * time.Second)
+		g.RumourHolder.AddRumour(*rm)
+		peer := data.GetRandomStringFromSlice(peers)
+		g.SendRumourMessage(rm, peer)
 	}
 }

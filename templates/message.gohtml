@@ -1,9 +1,11 @@
 <ul>
     {{range $i, $val := .Messages}}
-    <li>
-            <li>Origin: {{$val.Origin}}</li>
-            <li>ID: {{$val.ID}}</li>
-            <li>Text: {{$val.Text}}</li>
-    </li>
+        {{if  $val.Text}}
+            <li>
+                <li>Origin: {{$val.Origin}}</li>
+                <li>ID: {{$val.ID}}</li>
+                <li>Text: {{$val.Text}}</li>
+            </li>
+        {{end}}
     {{end}}
 </ul>
