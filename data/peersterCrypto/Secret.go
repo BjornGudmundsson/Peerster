@@ -1,5 +1,7 @@
 package peersterCrypto
 
+import "crypto/sha256"
+
 //EncryptedSecret is the secret
 //to be shared with a peer when
 //trying to share a file. All
@@ -14,6 +16,29 @@ type EncryptedSecret struct {
 	IV           []byte
 	Key          []byte
 	Signature    []byte
+}
+
+//Hash hashes an Encrypted secret.
+func (es *EncryptedSecret) Hash() [32]byte {
+	h := sha256.New()
+	h.Write(es.FileName)
+	h.Write(es.MetaFileHash)
+	h.Write(es.IV)
+	h.Write(es.Key)
+	h.Write(es.Signature)
+	marshalled := es.Publickey.Marshall()
+	h.Write(marshalled)
+	h.Write([]byte(es.Origin))
+	var buf [32]byte
+	copy(buf[:], h.Sum(nil))
+	return buf
+}
+
+//Compare bytes returns if two encrypted secrets are the same
+func (es *EncryptedSecret) Compare(e *EncryptedSecret) bool {
+	h1 := es.Hash()
+	h2 := e.Hash()
+	return compareBytes(h1[:], h2[:])
 }
 
 //NewEncryptedSecret returns a new encrypted secret
@@ -53,6 +78,7 @@ func compareBytes(b1, b2 []byte) bool {
 	return true
 }
 
+//CompareSecrets compares two secrets
 func CompareSecrets(s1, s2 *Secret) bool {
 	if s1.FileName != s2.FileName {
 		return false
