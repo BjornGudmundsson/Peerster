@@ -10,7 +10,7 @@ func (g *Gossiper) delegateMessages(ch chan GossipAddress) {
 	for {
 		select {
 		case msg := <-ch:
-			g.Neighbours.PrintNeighbours()
+			//g.Neighbours.PrintNeighbours()
 			if msg.Msg.Simple != nil {
 				go g.handleSimpleMessage(msg)
 			}
@@ -42,12 +42,18 @@ func (g *Gossiper) delegateMessages(ch chan GossipAddress) {
 			if msg.Msg.TxPublish != nil {
 				go g.HandleTxPublish(msg)
 			}
+			if msg.Msg.ChunkStoreRequest != nil {
+				go g.HandleChunkStoreRequest(msg)
+			}
+			if msg.Msg.ChunkStoreReply != nil {
+				go g.HandleChunkStoreReply(msg.Msg)
+			}
 		}
 	}
 }
 
 func (g *Gossiper) handleSimpleMessage(msg GossipAddress) {
-	g.Neighbours.PrintNeighbours()
+	//g.Neighbours.PrintNeighbours()
 	sm := *msg.Msg.Simple
 	fmt.Printf("SIMPLE MESSAGE origin %v from %v content %v \n", sm.OriginalName, sm.RelayPeerAddr, sm.Contents)
 }
@@ -58,6 +64,9 @@ func (g *Gossiper) handleRumourMessage(msg GossipAddress) {
 	rm := gp.Rumour
 	isNew := g.RumourHolder.IsNew(*rm)
 	if isNew {
+		g.RoutingTable.UpdateRoutingTable(rm.Origin, addr)
+		g.LiveTable.Update(rm.Origin)
+		g.ChordTable.AddToChord(rm.Origin)
 		g.RumourHolder.AddRumour(*rm)
 		sp := g.RumourHolder.CreateStatusPacket()
 		g.SendStatusPacket(sp, addr)
@@ -91,7 +100,7 @@ func (g *Gossiper) CheckIfUpToDate(m map[string]uint32) bool {
 }
 
 func (g *Gossiper) handleStatusMessage(msg GossipAddress) {
-	PrintStatusPacket(msg)
+	//PrintStatusPacket(msg)
 	addr := msg.Addr
 	m := msg.Msg
 	sp := msg.Msg.Status
@@ -100,17 +109,14 @@ func (g *Gossiper) handleStatusMessage(msg GossipAddress) {
 		g.StatusPeers.PassPacketToProcess(addr, *m)
 		return
 	}
-	fmt.Println("Not an entry")
 	upToDate := g.RumourHolder.CheckIfUpToDate(m.Status)
 	if upToDate {
-		fmt.Println("In sync with", addr)
 		return
 	}
 	peerNeeds := g.RumourHolder.GetRumoursPeerNeeds(sp)
 	if len(peerNeeds) != 0 {
 		//Sending a random rumour that the
 		randomRumour := data.GetRandomRumourFromSlice(peerNeeds)
-		fmt.Println("Random rumour: ", randomRumour)
 		g.rumourMongering(&randomRumour, "")
 	} else {
 		//Get the messages that I need if there were no messages that

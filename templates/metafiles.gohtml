@@ -10,7 +10,8 @@
     <p>Here are all your metafiles</p>
     <div>
         {{ range $key, $val := . }}
-            <p>Metafile is: {{$key}} </p>
+            <p>Metafilehash is: {{$key}} </p>
+            <p>Metafile is: {{$val}} </p>
             <br>
         {{end}}
     </div>

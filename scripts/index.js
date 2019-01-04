@@ -57,3 +57,15 @@ $('#downloadForm').submit(function(e){
         }
     });
 });
+
+$('#DownloadMetaFileForm').submit(function(e){
+    e.preventDefault();
+    $.ajax({
+        url:'/DownloadMetaFile',
+        type:'post',
+        data:$('#DownloadMetaFileForm').serialize(),
+        success:function(){
+            //whatever you wanna do after the form is successfully submitted
+        }
+    });
+});

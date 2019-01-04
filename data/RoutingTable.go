@@ -1,7 +1,6 @@
 package data
 
 import (
-	"fmt"
 	"sync"
 )
 
@@ -19,7 +18,5 @@ type RoutingTable struct {
 func (rt *RoutingTable) UpdateRoutingTable(origin string, hop string) {
 	rt.mux.Lock()
 	rt.Table[origin] = hop
-	fmt.Printf("\nDSDV %v %v \n", origin, hop)
-
 	rt.mux.Unlock()
 }

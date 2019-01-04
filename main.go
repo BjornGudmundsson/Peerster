@@ -21,6 +21,7 @@ func main() {
 	fmt.Println(*rtTimer)
 	fp := data.FormatPeers(*peers)
 	g := nodes.NewGossiper(*addr, *name, fp, *port)
+	g.ChordTable.AddToChord(*name)
 	go g.ReceiveMessages()
 	go g.ClientMessageReceived(*port)
 	go g.TCPServer(*port + 1)

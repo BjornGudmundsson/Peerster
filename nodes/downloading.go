@@ -29,8 +29,6 @@ func (g *Gossiper) DownloadingFile(filename string) {
 	var nxtChunk []byte
 	if metadata.MetaFile == nil {
 		lastKnownDestination = g.ChunkToPeer.GetRandomOwnerOfMetafile(metafileHash)
-		meta = make([]byte, len(metadata.MetaFile))
-		copy(meta, metadata.MetaFile)
 		nxtChunk, _ = hex.DecodeString(metafileHash)
 		mfh := metafileHash
 		g.HandlerDataReplies.AddChunk(mfh, chunkChannel)
@@ -55,8 +53,8 @@ func (g *Gossiper) DownloadingFile(filename string) {
 			if hashHex == metafileHash {
 				fmt.Println("DOWNLOADING metafile")
 				mf := datareply.Data
-				meta = make([]byte, len(mf))
-				copy(meta, mf)
+				metadata.MetaFile = datareply.Data
+				g.Files[filename] = metadata
 				_, i := g.HasAllChunksOfFile(meta)
 				lastKnownDestination = g.ChunkToPeer.GetRandomOwnerOfChunk(metafileHash, (i/32)+1)
 				if g.Files[filename].MetaFile != nil {
@@ -73,16 +71,18 @@ func (g *Gossiper) DownloadingFile(filename string) {
 					gotMetaFile = !gotMetaFile
 				}
 			} else {
+				md := g.Files[filename]
 				g.Chunks[hashHex] = string(datareply.Data)
-				done, index := g.HasAllChunksOfFile(meta)
+				fmt.Println("Got this data: ", string(datareply.Data))
+				done, index := g.HasAllChunksOfFile(md.MetaFile)
 				if done {
-					g.ReconstructFile(filename, meta)
-					g.HandlerDataReplies.DeleteMetafile(meta)
+					g.ReconstructFile(filename, md.MetaFile)
+					g.HandlerDataReplies.DeleteMetafile(md.MetaFile)
 					return
 				}
 				lastKnownDestination = g.ChunkToPeer.GetRandomOwnerOfChunk(metafileHash, (index/32)+1)
 				fmt.Println("DOWNLOADING chunk ", index/32)
-				nxtChunk = meta[index : index+32]
+				nxtChunk = md.MetaFile[index : index+32]
 				g.SendDataRequest(lastKnownDestination, nxtChunk)
 			}
 		case <-ticker.C:
@@ -111,6 +111,7 @@ func (g *Gossiper) ReconstructFile(filename string, metafile []byte) {
 	for i := 0; i < n; i++ {
 		j := i + 1
 		chunk := hex.EncodeToString(metafile[i*32 : j*32])
+		fmt.Println("Chunk databit: ", g.Chunks[chunk])
 		fmt.Fprintf(f, g.Chunks[chunk])
 	}
 	fmt.Printf("Reconstructed file %v", filename)

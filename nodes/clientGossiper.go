@@ -1,6 +1,8 @@
 package nodes
 
 import (
+	"encoding/hex"
+	"errors"
 	"fmt"
 	"html/template"
 	"log"
@@ -88,6 +90,14 @@ func (g *Gossiper) ServeHTTP(wr http.ResponseWriter, req *http.Request) {
 	}
 	if route == "/DownloadFoundFile" {
 		g.DownloadFoundFile(wr, req)
+		return
+	}
+	if route == "/DownloadMetaFile" {
+		g.DownloadMetaFile(wr, req)
+		return
+	}
+	if route == "/GetChord" {
+		g.GetChordTable(wr, req)
 		return
 	}
 }
@@ -231,7 +241,11 @@ func (g *Gossiper) DownloadFoundFile(wr http.ResponseWriter, req *http.Request) 
 
 func (g *Gossiper) GetMetaFiles(wr http.ResponseWriter, req *http.Request) {
 	metafiles := g.Files
-	tpl.ExecuteTemplate(wr, "metafiles.gohtml", metafiles)
+	m := make(map[string]string)
+	for key, val := range metafiles {
+		m[key] = hex.EncodeToString(val.MetaFile)
+	}
+	tpl.ExecuteTemplate(wr, "metafiles.gohtml", m)
 }
 
 func (g *Gossiper) GetFiles(wr http.ResponseWriter, req *http.Request) {
@@ -257,4 +271,30 @@ func (g *Gossiper) GetFoundFile(wr http.ResponseWriter, req *http.Request) {
 		Matches: matches,
 	}
 	tpl.ExecuteTemplate(wr, "FoundFile.gohtml", ts)
+}
+
+func (g *Gossiper) GetChordTable(wr http.ResponseWriter, req *http.Request) {
+	positions := g.ChordTable.GetPositions()
+	m := make([]string, 0)
+	for _, val := range positions {
+		m = append(m, val.String())
+	}
+	table := g.ChordTable.GetTable()
+	fmt.Println(m)
+	tpl.ExecuteTemplate(wr, "chord.gohtml", table)
+}
+
+//DownloadMetaFile downloads the metafile with the corresponding file name from
+//an HTML form
+func (g *Gossiper) DownloadMetaFile(wr http.ResponseWriter, req *http.Request) {
+	metafile := req.FormValue("metafile")
+	metafiledata, e := hex.DecodeString(metafile)
+	if e != nil {
+		log.Fatal(e)
+	}
+	fn := req.FormValue("filename")
+	if fn == "" {
+		log.Fatal(errors.New("Got an empty string from the form"))
+	}
+	g.PopulateFromMetafile(metafiledata, fn)
 }

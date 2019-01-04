@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"sync"
 
+	"github.com/BjornGudmundsson/Peerster/data/hashtable"
+
 	"github.com/BjornGudmundsson/Peerster/data/transactions"
 )
 
@@ -42,16 +44,18 @@ func NewSimpleMessage(ogname, msg, relay string) *SimpleMessage {
 //the form of a RumourMessage structu and
 //the corresponding status of the node.
 type GossipPacket struct {
-	Simple         *SimpleMessage
-	Rumour         *RumourMessage
-	Status         *StatusPacket
-	PrivateMessage *PrivateMessage
-	DataRequest    *DataRequest
-	DataReply      *DataReply
-	SearchReply    *SearchReply
-	SearchRequest  *SearchRequest
-	TxPublish      *transactions.TxPublish
-	BlockPublish   *transactions.BlockPublish
+	Simple            *SimpleMessage
+	Rumour            *RumourMessage
+	Status            *StatusPacket
+	PrivateMessage    *PrivateMessage
+	DataRequest       *DataRequest
+	DataReply         *DataReply
+	SearchReply       *SearchReply
+	SearchRequest     *SearchRequest
+	TxPublish         *transactions.TxPublish
+	BlockPublish      *transactions.BlockPublish
+	ChunkStoreRequest *hashtable.ChunkStoreRequest
+	ChunkStoreReply   *hashtable.ChunkStoreReply
 }
 
 //MessageHolder Assures a more concurrent access to

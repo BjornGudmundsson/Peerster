@@ -12,7 +12,6 @@ import (
 	"strings"
 
 	"github.com/BjornGudmundsson/Peerster/data"
-	"github.com/BjornGudmundsson/Peerster/data/transactions"
 )
 
 const chunkSize uint64 = 8
@@ -39,6 +38,7 @@ func (g *Gossiper) HandleNewFile(fh *multipart.FileHeader, f multipart.File) {
 		g.Chunks[hxhash] = chunkString
 		metafile = append(metafile, tempbs...)
 	}
+	go g.SpreadMetaFile(metafile)
 	hashMF := sha256.Sum256(metafile)
 	hashMFBs := make([]byte, 0)
 	for _, b := range hashMF {
@@ -52,10 +52,10 @@ func (g *Gossiper) HandleNewFile(fh *multipart.FileHeader, f multipart.File) {
 		HashOfMetaFile: hexHash,
 	}
 	g.Files[mf.HashOfMetaFile] = *mf
-	file := transactions.NewFile(fh.Filename, fSize, hashMFBs)
+	/*file := transactions.NewFile(fh.Filename, fSize, hashMFBs)
 	tx := transactions.NewTransaction(file, hoplimit)
 	g.BroadCastTxPublish(tx, "")
-	g.TransactionBuffer.AddTx(tx)
+	g.TransactionBuffer.AddTx(tx)*/
 }
 
 //HandleNewOSFile takes in a filename and gets
@@ -96,6 +96,7 @@ func (g *Gossiper) HandleNewOSFile(fn string) {
 		g.Chunks[hxhash] = chunkString
 		metafile = append(metafile, tempbs...)
 	}
+	go g.SpreadMetaFile(metafile)
 	hashMF := sha256.Sum256(metafile)
 	hashMFBs := make([]byte, 0)
 	for _, b := range hashMF {
@@ -109,10 +110,12 @@ func (g *Gossiper) HandleNewOSFile(fn string) {
 		HashOfMetaFile: hexHash,
 	}
 	g.Files[mf.HashOfMetaFile] = *mf
-	file := transactions.NewFile(fn, fSize, hashMFBs)
-	tx := transactions.NewTransaction(file, hoplimit)
-	g.BroadCastTxPublish(tx, "")
-	g.TransactionBuffer.AddTx(tx)
+	/*
+		file := transactions.NewFile(fn, fSize, hashMFBs)
+		tx := transactions.NewTransaction(file, hoplimit)
+		g.BroadCastTxPublish(tx, "")
+		g.TransactionBuffer.AddTx(tx)
+	*/
 }
 
 //CreateChunkmap takes in the metafile corresponding to a file

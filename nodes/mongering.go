@@ -1,7 +1,6 @@
 package nodes
 
 import (
-	"fmt"
 	"math/rand"
 	"time"
 
@@ -17,16 +16,13 @@ type MongererMessages struct {
 func (g *Gossiper) rumourMongering(rm *data.RumourMessage, addr string) {
 	peers := g.Neighbours.GetAllNeighboursWithException(addr)
 	replyChannel := make(chan data.GossipPacket)
-	fmt.Println("rumour mongering")
 	n := len(peers)
 	if n == 0 {
-		fmt.Println("No peers ")
 		return
 	}
 	t, peer := g.GetPeerNoRumourMonger(peers)
 	//I am already rumour mongering with "everyone"
 	if !t {
-		fmt.Println("Whack")
 		return
 	}
 	g.StatusPeers.AddPeer(peer, replyChannel)
@@ -47,7 +43,6 @@ func (g *Gossiper) rumourMongering(rm *data.RumourMessage, addr string) {
 					}
 					g.SendRumourMessage(rm, peer)
 				} else {
-					fmt.Println("Stopped rumour mongering")
 					g.StatusPeers.RemovePeer(peer)
 					return
 				}
@@ -68,7 +63,6 @@ func (g *Gossiper) rumourMongering(rm *data.RumourMessage, addr string) {
 			}
 			ticker = time.NewTicker(time.Second)
 		case <-ticker.C:
-			fmt.Println("Flipping a coin")
 			coinFlip := data.FlipACoin()
 			if coinFlip {
 				g.StatusPeers.RemovePeer(peer)
@@ -78,7 +72,6 @@ func (g *Gossiper) rumourMongering(rm *data.RumourMessage, addr string) {
 				}
 				g.SendRumourMessage(rm, peer)
 			} else {
-				fmt.Println("Stopped rumour mongering")
 				g.StatusPeers.RemovePeer(peer)
 				return
 			}

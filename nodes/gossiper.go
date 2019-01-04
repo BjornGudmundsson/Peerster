@@ -7,6 +7,7 @@ import (
 
 	"github.com/BjornGudmundsson/Peerster/data"
 	"github.com/BjornGudmundsson/Peerster/data/blockchain"
+	"github.com/BjornGudmundsson/Peerster/data/hashtable"
 	"github.com/BjornGudmundsson/Peerster/data/transactions"
 	"github.com/dedis/protobuf"
 )
@@ -37,7 +38,10 @@ type Gossiper struct {
 	BlockChain            *blockchain.BlockChain
 	TransactionBuffer     *transactions.TransactionBuffer
 	RumourHolder          *data.RumourHolder
+	LiveTable             *hashtable.LiveTable
+	ChordTable            *hashtable.ChordTable
 	StatusPeers           *data.StatusPeers
+	ReplyHandler          *hashtable.ReplyHandler
 }
 
 //NewGossiper is a function that returns a pointer
@@ -82,7 +86,10 @@ func NewGossiper(address, name string, neighbours []string, p int) *Gossiper {
 	bc := blockchain.NewBlockChain()
 	txb := transactions.NewBuffer()
 	rh := data.NewRumourHolder()
+	chordTable := hashtable.NewChordTable()
+	liveTable := hashtable.NewLiveTable()
 	sp := data.NewStatusPeers()
+	replyHandler := hashtable.NewReplyHandler()
 	return &Gossiper{
 		Name:                  name,
 		address:               udpaddr,
@@ -107,7 +114,10 @@ func NewGossiper(address, name string, neighbours []string, p int) *Gossiper {
 		BlockChain:            bc,
 		TransactionBuffer:     txb,
 		RumourHolder:          rh,
+		ChordTable:            chordTable,
+		LiveTable:             liveTable,
 		StatusPeers:           sp,
+		ReplyHandler:          replyHandler,
 	}
 }
 
