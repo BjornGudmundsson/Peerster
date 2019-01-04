@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"net"
+	"sync"
 
 	"github.com/BjornGudmundsson/Peerster/data"
 	"github.com/BjornGudmundsson/Peerster/data/blockchain"
@@ -42,6 +43,10 @@ type Gossiper struct {
 	ChordTable            *hashtable.ChordTable
 	StatusPeers           *data.StatusPeers
 	ReplyHandler          *hashtable.ReplyHandler
+	blockChainMutex       sync.Mutex
+	headBlock             *pairBlockLen
+	pendingTransactions   []*KeyTransaction
+	blocksMap           map[string]*pairBlockLen
 }
 
 //NewGossiper is a function that returns a pointer
