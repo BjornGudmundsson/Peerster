@@ -280,7 +280,6 @@ func (gossiper *Gossiper)BroadCastPacket(packet *data.GossipPacket)  {
 func (gossiper *Gossiper)KeyMiningThread() {
 
 	for true {
-
 		gossiper.blockChainMutex.Lock()
 		headHash := [32]byte{}
 
@@ -325,12 +324,11 @@ func (gossiper *Gossiper)KeyMiningThread() {
 
 			// change head
 			gossiper.headBlock = newBlockStruct
-			s := "KEY-CHAIN" + hex.EncodeToString(newHash[:])
+			s := "KEY-CHAIN " + hex.EncodeToString(newHash[:])
 			fmt.Println(s)
 
 			// all pending transactions have been added, removing them
 			gossiper.pendingTransactions = make([]*data.KeyTransaction, 0)
-			gossiper.blockChainMutex.Unlock()
 
 
 			// publish
@@ -340,5 +338,6 @@ func (gossiper *Gossiper)KeyMiningThread() {
 			gossiper.BroadCastPacket(packet)
 
 		}
+		gossiper.blockChainMutex.Unlock()
 	}
 }

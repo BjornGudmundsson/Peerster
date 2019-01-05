@@ -95,6 +95,8 @@ func NewGossiper(address, name string, neighbours []string, p int) *Gossiper {
 	liveTable := hashtable.NewLiveTable()
 	sp := data.NewStatusPeers()
 	replyHandler := hashtable.NewReplyHandler()
+	pendingTransactions := make([]*data.KeyTransaction, 0)
+	blockChain := make(map[string]*pairBlockLen)
 	return &Gossiper{
 		Name:                  name,
 		address:               udpaddr,
@@ -123,6 +125,8 @@ func NewGossiper(address, name string, neighbours []string, p int) *Gossiper {
 		LiveTable:             liveTable,
 		StatusPeers:           sp,
 		ReplyHandler:          replyHandler,
+		pendingTransactions:   pendingTransactions,
+		blocksMap:             blockChain,
 	}
 }
 
