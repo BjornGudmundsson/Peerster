@@ -2,7 +2,6 @@ package data
 
 import (
 	"fmt"
-	"github.com/BjornGudmundsson/Peerster/nodes"
 	"sync"
 
 	"github.com/BjornGudmundsson/Peerster/data/hashtable"
@@ -57,10 +56,10 @@ type GossipPacket struct {
 	BlockPublish      *transactions.BlockPublish
 	ChunkStoreRequest *hashtable.ChunkStoreRequest
 	ChunkStoreReply   *hashtable.ChunkStoreReply
-	BlockRequest      *nodes.BlockRequest
-	KeyBlockPublish   *nodes.KeyBlockPublish
-	KeyPublish        *nodes.KeyPublish
-	BlockReply        *nodes.BlockReply
+	BlockRequest      *BlockRequest
+	KeyBlockPublish   *KeyBlockPublish
+	KeyPublish        *KeyPublish
+	BlockReply        *BlockReply
 }
 
 //MessageHolder Assures a more concurrent access to

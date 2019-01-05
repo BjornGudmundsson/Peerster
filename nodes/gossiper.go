@@ -45,7 +45,7 @@ type Gossiper struct {
 	ReplyHandler          *hashtable.ReplyHandler
 	blockChainMutex       sync.Mutex
 	headBlock             *pairBlockLen
-	pendingTransactions   []*KeyTransaction
+	pendingTransactions   []*data.KeyTransaction
 	blocksMap           map[string]*pairBlockLen
 }
 

@@ -2,8 +2,6 @@ package nodes
 
 import (
 	"crypto/rsa"
-	"crypto/sha256"
-	"encoding/binary"
 	"encoding/hex"
 	"fmt"
 	"github.com/BjornGudmundsson/Peerster/data"
@@ -11,44 +9,9 @@ import (
 	"time"
 )
 
-type BlockRequest struct {
-	Origin string
-	Destination string
-	HopLimit uint32
-	HashValue [32]byte
-}
-
-type BlockReply struct {
-	Origin string
-	Destination string
-	HopLimit uint32
-	Block KeyBlock
-}
-
-type KeyTransaction struct {
-	Name string
-	Key rsa.PublicKey
-}
-
-type KeyBlock struct {
-	PrevHash [32]byte
-	Nonce [32]byte
-	Transactions []KeyTransaction
-}
-
-type KeyPublish struct {
-	Transaction *KeyTransaction
-	HopLimit uint32
-}
-
-type KeyBlockPublish struct {
-	Origin string
-	Block *KeyBlock
-	HopLimit uint32
-}
 
 type pairBlockLen struct {
-	Block *KeyBlock
+	Block *data.KeyBlock
 	len uint64
 }
 
@@ -137,12 +100,12 @@ func (gossiper *Gossiper) PublishPublicKey(name string, key rsa.PublicKey) bool{
 	if gossiper.GetPublicKey(name) == nil && gossiper.checkInsidePendingTransactions(name	){
 		// add the transaction to the pending transactions
 		gossiper.blockChainMutex.Lock()
-		newTransaction := &KeyTransaction{Name: name, Key: key}
+		newTransaction := &data.KeyTransaction{Name: name, Key: key}
 		gossiper.pendingTransactions = append(gossiper.pendingTransactions, newTransaction)
 		gossiper.blockChainMutex.Unlock()
 
 		// send the transaction to neighbors
-		keyPublish := &KeyPublish{Transaction: newTransaction, HopLimit: hoplimit}
+		keyPublish := &data.KeyPublish{Transaction: newTransaction, HopLimit: hoplimit}
 		packet := &data.GossipPacket{KeyPublish: keyPublish}
 		gossiper.BroadCastPacket(packet)
 
@@ -152,7 +115,7 @@ func (gossiper *Gossiper) PublishPublicKey(name string, key rsa.PublicKey) bool{
 
 }
 
-func (gossiper *Gossiper) HandleBlockRequest(request *BlockRequest)  {
+func (gossiper *Gossiper) HandleBlockRequest(request *data.BlockRequest)  {
 	if request.Destination == gossiper.Name{
 		// the request is for me
 		blockHashBytes := request.HashValue
@@ -164,7 +127,7 @@ func (gossiper *Gossiper) HandleBlockRequest(request *BlockRequest)  {
 		gossiper.blockChainMutex.Unlock()
 
 		if found{
-			reply := &BlockReply{Destination: request.Origin, Origin: gossiper.Name, HopLimit: hoplimit, Block: *block.Block}
+			reply := &data.BlockReply{Destination: request.Origin, Origin: gossiper.Name, HopLimit: hoplimit, Block: *block.Block}
 			// create gossip packet with reply and send it
 			packet := &data.GossipPacket{BlockReply: reply}
 			gossiper.SendPacketViaRoutingTable(packet, request.Origin)
@@ -183,7 +146,7 @@ func (gossiper *Gossiper) HandleBlockRequest(request *BlockRequest)  {
 	}
 }
 
-func (gossiper *Gossiper)HandleNewBlock(blockPublish *KeyBlockPublish)  {
+func (gossiper *Gossiper)HandleNewBlock(blockPublish *data.KeyBlockPublish)  {
 	newBlock := blockPublish.Block
 	// check the prove of work
 	newBlockHash := newBlock.Hash()
@@ -269,7 +232,7 @@ func (gossiper *Gossiper)HandleNewBlock(blockPublish *KeyBlockPublish)  {
 					gossiper.headBlock = newBlockStruct
 
 					// as head has been changed, we may need to delete some transactions
-					newTransactions := make([]*KeyTransaction, 0)
+					newTransactions := make([]*data.KeyTransaction, 0)
 					for _, transaction := range gossiper.pendingTransactions{
 						if gossiper.GetPublicKey(transaction.Name) == nil{
 							newTransactions = append(newTransactions, transaction)
@@ -292,7 +255,7 @@ func (gossiper *Gossiper)HandleNewBlock(blockPublish *KeyBlockPublish)  {
 
 
 func (gossiper *Gossiper) RequestBlock(hash [32] byte, dest string)  {
-	request := &BlockRequest{Origin: gossiper.Name, Destination: dest, HopLimit: hoplimit, HashValue: hash}
+	request := &data.BlockRequest{Origin: gossiper.Name, Destination: dest, HopLimit: hoplimit, HashValue: hash}
 	packet := &data.GossipPacket{BlockRequest: request}
 	gossiper.SendPacketViaRoutingTable(packet, dest)
 }
@@ -328,7 +291,7 @@ func (gossiper *Gossiper)KeyMiningThread() {
 		}
 
 		// Save in listToPublish all pending transactions to create a new Block
-		listToPublish := make([]KeyTransaction, len(gossiper.pendingTransactions))
+		listToPublish := make([]data.KeyTransaction, len(gossiper.pendingTransactions))
 		for i, pointer := range gossiper.pendingTransactions {
 			listToPublish[i] = *pointer
 		}
@@ -338,7 +301,7 @@ func (gossiper *Gossiper)KeyMiningThread() {
 		rand.Read(nonce[:])
 
 		// Creating new Block
-		newBlock := &KeyBlock{PrevHash: headHash, Nonce: nonce, Transactions: listToPublish}
+		newBlock := &data.KeyBlock{PrevHash: headHash, Nonce: nonce, Transactions: listToPublish}
 		newHash := newBlock.Hash()
 
 		// Check validity, Prove of work is 16 bits (first 2 bytes) equals to 0
@@ -366,39 +329,16 @@ func (gossiper *Gossiper)KeyMiningThread() {
 			fmt.Println(s)
 
 			// all pending transactions have been added, removing them
-			gossiper.pendingTransactions = make([]*KeyTransaction, 0)
+			gossiper.pendingTransactions = make([]*data.KeyTransaction, 0)
 			gossiper.blockChainMutex.Unlock()
 
 
 			// publish
 			fmt.Println("publishing new key block")
-			blockPublish := &KeyBlockPublish{Block: newBlock, HopLimit: hoplimit, Origin: gossiper.Name}
+			blockPublish := &data.KeyBlockPublish{Block: newBlock, HopLimit: hoplimit, Origin: gossiper.Name}
 			packet := &data.GossipPacket{KeyBlockPublish: blockPublish}
 			gossiper.BroadCastPacket(packet)
 
 		}
 	}
-}
-
-
-func (b *KeyBlock) Hash() (out [32]byte) {
-	h := sha256.New()
-	h.Write(b.PrevHash[:])
-	h.Write(b.Nonce[:])
-	binary.Write(h,binary.LittleEndian, uint32(len(b.Transactions)))
-	for _, t := range b.Transactions {
-		th := t.Hash()
-		h.Write(th[:])
-	}
-	copy(out[:], h.Sum(nil))
-	return
-}
-
-func (t *KeyTransaction) Hash() (out [32]byte) {
-	h := sha256.New()
-	h.Write([]byte(t.Name))
-	binary.Write(h,binary.LittleEndian, uint32(t.Key.E))
-	h.Write(t.Key.N.Bytes())
-	copy(out[:], h.Sum(nil))
-	return
 }
