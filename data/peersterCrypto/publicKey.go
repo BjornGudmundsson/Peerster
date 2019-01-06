@@ -24,6 +24,18 @@ type PublicKey struct {
 	publicKey rsa.PublicKey
 }
 
+//NewPublicPair returns a new public pair.
+func NewPublicPair(key rsa.PublicKey, name string) *PublicPair {
+	pub := PublicKey{
+		publicKey: key,
+	}
+	pair := &PublicPair{
+		PublicKey: pub,
+		Origin:    name,
+	}
+	return pair
+}
+
 //NewPrivateKey returns a new instance of
 //a randomly generated privatekey.
 func NewPrivateKey() *PrivateKey {
