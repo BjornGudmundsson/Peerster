@@ -22,10 +22,8 @@ type BlockRequest struct {
 }
 
 type BlockReply struct {
-	Origin      string
 	Destination string
-	HopLimit    uint32
-	Block       KeyBlock
+	KeyBlockPublish *KeyBlockPublish
 }
 
 type KeyTransaction struct {
