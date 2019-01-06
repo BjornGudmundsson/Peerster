@@ -1,6 +1,7 @@
 package nodes
 
 import (
+	"bytes"
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
@@ -11,10 +12,13 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/BjornGudmundsson/Peerster/data/peersterCrypto"
+
 	"github.com/BjornGudmundsson/Peerster/data"
 )
 
 const chunkSize uint64 = 8
+const keySize int = 16
 
 //HandleNewFile takes in a multipart.Fileheader and a multipart file and processes
 //the file in such a way that is specified in the homework description. Adds all the
@@ -22,12 +26,27 @@ const chunkSize uint64 = 8
 //whithout respect for which file that bit of text belongs to.
 func (g *Gossiper) HandleNewFile(fh *multipart.FileHeader, f multipart.File) {
 	fSize := uint64(fh.Size)
+	fileData := make([]byte, fSize)
+	f.Read(fileData)
+	mod := fSize % uint64(keySize)
+	if mod != 0 {
+		pad := keySize - int(mod)
+		buf := make([]byte, pad)
+		fileData = append(fileData, buf...)
+	}
+	IV := peersterCrypto.GetIV(keySize)
+	key := peersterCrypto.GetKey(keySize)
+	encryptedFileData, e := peersterCrypto.EncryptBlocks(fileData, key, IV)
+	if e != nil {
+		log.Fatal(e)
+	}
+	reader := bytes.NewReader(encryptedFileData)
 	div := float64(fSize) / float64(chunkSize)
 	metafile := make([]byte, 0)
 	sizeInChunks := uint64(math.Ceil(div))
 	for i := uint64(0); i < sizeInChunks; i++ {
 		buf := make([]byte, chunkSize)
-		n, _ := f.Read(buf)
+		n, _ := reader.Read(buf)
 		chunkString := string(buf)[0:n]
 		hash := sha256.Sum256([]byte(chunkString))
 		tempbs := make([]byte, 0)
@@ -38,7 +57,7 @@ func (g *Gossiper) HandleNewFile(fh *multipart.FileHeader, f multipart.File) {
 		g.Chunks[hxhash] = chunkString
 		metafile = append(metafile, tempbs...)
 	}
-	go g.SpreadMetaFile(metafile)
+	//go g.SpreadMetaFile(metafile)
 	hashMF := sha256.Sum256(metafile)
 	hashMFBs := make([]byte, 0)
 	for _, b := range hashMF {
@@ -52,10 +71,6 @@ func (g *Gossiper) HandleNewFile(fh *multipart.FileHeader, f multipart.File) {
 		HashOfMetaFile: hexHash,
 	}
 	g.Files[mf.HashOfMetaFile] = *mf
-	/*file := transactions.NewFile(fh.Filename, fSize, hashMFBs)
-	tx := transactions.NewTransaction(file, hoplimit)
-	g.BroadCastTxPublish(tx, "")
-	g.TransactionBuffer.AddTx(tx)*/
 }
 
 //HandleNewOSFile takes in a filename and gets

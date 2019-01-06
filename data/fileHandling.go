@@ -8,6 +8,8 @@ type MetaData struct {
 	FileSize       uint64
 	MetaFile       []byte
 	HashOfMetaFile string
+	IV             []byte
+	Key            []byte
 }
 
 //DataRequest is a struct that
