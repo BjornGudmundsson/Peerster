@@ -24,8 +24,6 @@ in case that the name has not a public key associated it returns nil.
 */
 func (gossiper *Gossiper) GetPublicKey(name string) *peersterCrypto.PublicPair {
 	var key *peersterCrypto.PublicPair
-	gossiper.blockChainMutex.Lock()
-	defer gossiper.blockChainMutex.Unlock()
 
 	// No blockChain initialised
 	if gossiper.headBlock == nil {
@@ -313,7 +311,6 @@ func (gossiper *Gossiper) KeyMiningThread() {
 
 	for true {
 		gossiper.blockChainMutex.Lock()
-		defer gossiper.blockChainMutex.Unlock()
 		headHash := [32]byte{}
 
 		thereWasChain := gossiper.headBlock != nil
@@ -371,5 +368,6 @@ func (gossiper *Gossiper) KeyMiningThread() {
 			packet := &data.GossipPacket{KeyBlockPublish: blockPublish}
 			gossiper.BroadCastPacket(packet)
 		}
+		gossiper.blockChainMutex.Unlock()
 	}
 }

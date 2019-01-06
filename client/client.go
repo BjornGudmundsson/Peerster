@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"log"
 	"net"
-	"strings"
 
 	"github.com/BjornGudmundsson/Peerster/data"
 	"github.com/dedis/protobuf"
@@ -21,13 +20,11 @@ func main() {
 	keywords := flag.String("keywords", "", "The keywords to search for a file by")
 	budget := flag.Int("budget", 2, "The budget for a request")
 	flag.Parse()
-	fmt.Println(strings.Split(*keywords, ","))
 	sendMessage(*UIPort, *msg, *ip, *dst, *file, *req, *keywords, uint64(*budget))
 }
 
 func sendMessage(port int, msg string, ip string, dst string, file, req string, kw string, b uint64) {
 	s := fmt.Sprintf("%v:%v", ip, port)
-	fmt.Println(s)
 	tmsg := &data.TextMessage{
 		Msg:      msg,
 		Dst:      dst,

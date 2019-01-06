@@ -2,15 +2,13 @@ package nodes
 
 import (
 	"encoding/hex"
+	"fmt"
 
 	"github.com/BjornGudmundsson/Peerster/data/peersterCrypto"
 )
 
 //GetAllPublicKeyInLongestChain finds all public key transactions in the longest chain
 func (g *Gossiper) GetAllPublicKeyInLongestChain() []peersterCrypto.PublicPair {
-	g.blockChainMutex.Lock()
-	defer g.blockChainMutex.Unlock()
-
 	// No blockChain initialised
 	if g.headBlock == nil {
 		return nil
@@ -30,5 +28,6 @@ func (g *Gossiper) GetAllPublicKeyInLongestChain() []peersterCrypto.PublicPair {
 		}
 		blockStruct, hasNext = g.blocksMap[hex.EncodeToString(block.PrevHash[:])]
 	}
+	fmt.Println("length list: ", len(list))
 	return list
 }

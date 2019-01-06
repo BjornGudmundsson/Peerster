@@ -100,6 +100,10 @@ func (g *Gossiper) ServeHTTP(wr http.ResponseWriter, req *http.Request) {
 		g.GetChordTable(wr, req)
 		return
 	}
+	if route == "/GetAllPublicKeys" {
+		g.GetAllPublicKeys(wr, req)
+		return
+	}
 }
 
 var tpl *template.Template
@@ -297,4 +301,16 @@ func (g *Gossiper) DownloadMetaFile(wr http.ResponseWriter, req *http.Request) {
 		log.Fatal(errors.New("Got an empty string from the form"))
 	}
 	g.PopulateFromMetafile(metafiledata, fn)
+}
+
+//GetAllPublicKeys is a route that displays all the public key pairs that are
+//logged on the longest chain
+func (g *Gossiper) GetAllPublicKeys(wr http.ResponseWriter, req *http.Request) {
+	pairs := g.GetAllPublicKeyInLongestChain()
+	for _, block := range g.blocksMap {
+		for _, tx := range block.Block.Transactions {
+			fmt.Println("Name: ", tx.GetName())
+		}
+	}
+	tpl.ExecuteTemplate(wr, "publicKeys.gohtml", pairs)
 }

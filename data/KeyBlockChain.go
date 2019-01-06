@@ -82,7 +82,7 @@ func (t *KeyTransaction) Hash() (out [32]byte) {
 //IsKeyPublish checks if a transaction is for publishing a public key name pair
 //or a secret sharing mechanism.
 func (t *KeyTransaction) IsKeyPublish() bool {
-	return t.KeyPublish == nil
+	return !(t.KeyPublish == nil)
 }
 
 //GetName returns the name of the node that published a public key

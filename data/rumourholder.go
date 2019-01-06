@@ -93,7 +93,6 @@ func (rh *RumourHolder) AddRumour(rm RumourMessage) {
 		if added {
 			rh.MessagesInOrder = append(rh.MessagesInOrder, rm)
 		}
-		fmt.Println(rfp.Count)
 	} else {
 		rfp := NewRumoursFromPeers()
 		added := rfp.AddRumour(rm)

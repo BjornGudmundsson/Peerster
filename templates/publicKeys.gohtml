@@ -7,12 +7,11 @@
 </head>
 
 <body>
-    <h1> Peers: </h1>
+    <h1> PublicKey: </h1>
     <div>
-        {{ range $key, $value := . }}
+        {{ range $index, $key := . }}
             <div>
-                <p> {{ $key }} : {{ $value }} </p>
-                <a href='/PrivateMessage?name={{$key}}'>Send Private message</a>
+                <p> {{ $key.Origin }} : {{ $key.PubicKey.N }} </p>
             </div>
         {{end}}
     </div>
