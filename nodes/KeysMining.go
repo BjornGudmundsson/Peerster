@@ -194,6 +194,10 @@ func (gossiper *Gossiper) HandleBlockRequest(request *data.BlockRequest) {
 	}
 }
 
+func (gossiper *Gossiper) HandleKeyTransaction(transaction *data.KeyPublish)  {
+
+}
+
 func (gossiper *Gossiper) HandleNewBlock(blockPublish *data.KeyBlockPublish) {
 	newBlock := blockPublish.Block
 	// check the prove of work
