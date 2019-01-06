@@ -25,6 +25,7 @@ in case that the name has not a public key associated it returns nil.
 func (gossiper *Gossiper) GetPublicKey(name string) *peersterCrypto.PublicPair {
 	var key *peersterCrypto.PublicPair
 	gossiper.blockChainMutex.Lock()
+	defer gossiper.blockChainMutex.Unlock()
 
 	// No blockChain initialised
 	if gossiper.headBlock == nil {
@@ -47,7 +48,6 @@ func (gossiper *Gossiper) GetPublicKey(name string) *peersterCrypto.PublicPair {
 			blockStruct, hasNext = gossiper.blocksMap[hex.EncodeToString(block.PrevHash[:])]
 		}
 	}
-	gossiper.blockChainMutex.Unlock()
 
 	return key
 }
@@ -111,14 +111,15 @@ func (gossiper *Gossiper) existsTransactionFromBlock(tx *data.KeyTransaction, ha
 
 }
 
-func (gossiper *Gossiper) checkInsidePendingTransactions(name string) bool {
+func (gossiper *Gossiper) checkInsidePendingTransactions(tx *data.KeyTransaction) bool {
 	found := false
 	gossiper.blockChainMutex.Lock()
+	defer gossiper.blockChainMutex.Unlock()
 	for i := 0; i < len(gossiper.pendingTransactions) && !found; i++ {
 		pendingTransaction := gossiper.pendingTransactions[i]
-		found = pendingTransaction.GetName() == name
+		found = tx.Compare(pendingTransaction)
+		fmt.Println("Found: ", found)
 	}
-	gossiper.blockChainMutex.Unlock()
 
 	return !found
 }
@@ -126,10 +127,12 @@ func (gossiper *Gossiper) checkInsidePendingTransactions(name string) bool {
 func (gossiper *Gossiper) PublishPublicKey(name string, key rsa.PublicKey) bool {
 	// check if the name already has an associated key
 	// neither in the pending transactions
-	if gossiper.GetPublicKey(name) == nil && gossiper.checkInsidePendingTransactions(name) {
+	newTransaction := data.NewEncryptionKeyTransaction(key, name)
+	fmt.Println("helo", (gossiper.GetPublicKey(name)) == nil && gossiper.checkInsidePendingTransactions(newTransaction))
+	if gossiper.GetPublicKey(name) == nil && gossiper.checkInsidePendingTransactions(newTransaction) {
+		fmt.Println("Bjorn")
 		// add the transaction to the pending transactions
 		gossiper.blockChainMutex.Lock()
-		newTransaction := data.NewEncryptionKeyTransaction(key, name)
 		gossiper.pendingTransactions = append(gossiper.pendingTransactions, newTransaction)
 		gossiper.blockChainMutex.Unlock()
 
@@ -310,6 +313,7 @@ func (gossiper *Gossiper) KeyMiningThread() {
 
 	for true {
 		gossiper.blockChainMutex.Lock()
+		defer gossiper.blockChainMutex.Unlock()
 		headHash := [32]byte{}
 
 		thereWasChain := gossiper.headBlock != nil
@@ -320,6 +324,9 @@ func (gossiper *Gossiper) KeyMiningThread() {
 
 		// Save in listToPublish all pending transactions to create a new Block
 		listToPublish := make([]data.KeyTransaction, len(gossiper.pendingTransactions))
+		if len(listToPublish) == 0 {
+			continue
+		}
 		for i, pointer := range gossiper.pendingTransactions {
 			listToPublish[i] = *pointer
 		}
@@ -363,8 +370,6 @@ func (gossiper *Gossiper) KeyMiningThread() {
 			blockPublish := &data.KeyBlockPublish{Block: newBlock, HopLimit: hoplimit, Origin: gossiper.Name}
 			packet := &data.GossipPacket{KeyBlockPublish: blockPublish}
 			gossiper.BroadCastPacket(packet)
-
 		}
-		gossiper.blockChainMutex.Unlock()
 	}
 }

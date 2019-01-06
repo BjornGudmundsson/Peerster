@@ -1,0 +1,21 @@
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+
+  <title>The HTML5 Herald</title>
+
+</head>
+
+<body>
+    <h1> Peers: </h1>
+    <div>
+        {{ range $key, $value := . }}
+            <div>
+                <p> {{ $key }} : {{ $value }} </p>
+                <a href='/PrivateMessage?name={{$key}}'>Send Private message</a>
+            </div>
+        {{end}}
+    </div>
+    <script src="/GetRoutingTableJS"></script>
+</body>
+</html>

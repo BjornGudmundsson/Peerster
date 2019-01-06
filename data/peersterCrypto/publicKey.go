@@ -21,13 +21,26 @@ type PrivateKey struct {
 //contains the public key
 //of a private key
 type PublicKey struct {
-	publicKey rsa.PublicKey
+	e int
+	N []byte
+}
+
+//GetKey returns the public key of the node
+func (pk PublicKey) GetKey() rsa.PublicKey {
+	N := big.NewInt(0).SetBytes(pk.N)
+	pub := rsa.PublicKey{
+		E: pk.e,
+		N: N,
+	}
+	return pub
 }
 
 //NewPublicPair returns a new public pair.
 func NewPublicPair(key rsa.PublicKey, name string) *PublicPair {
+	bs := key.N.Bytes()
 	pub := PublicKey{
-		publicKey: key,
+		e: key.E,
+		N: bs,
 	}
 	pair := &PublicPair{
 		PublicKey: pub,
@@ -62,19 +75,20 @@ func getPrivateKey() *rsa.PrivateKey {
 func (priv *PrivateKey) GetPublicKey() PublicKey {
 	pub := priv.privateKey.PublicKey
 	return PublicKey{
-		publicKey: pub,
+		e: pub.E,
+		N: pub.N.Bytes(),
 	}
 }
 
 //Encrypt encrypts a message with the public key
 func (pk *PublicKey) Encrypt(msg []byte) ([]byte, error) {
-	pub := &pk.publicKey
+	pub := pk.GetKey()
 	hash := sha256.New()
 	label := []byte("")
 	ciphertext, err := rsa.EncryptOAEP(
 		hash,
 		rand.Reader,
-		pub,
+		&pub,
 		msg,
 		label,
 	)
@@ -86,10 +100,10 @@ func (pk *PublicKey) Encrypt(msg []byte) ([]byte, error) {
 
 //Marshall marshalls the public key to a byte array
 func (pk PublicKey) Marshall() []byte {
-	e := pk.publicKey.E
+	e := pk.e
 	E := big.NewInt(int64(e))
-	N := pk.publicKey.N
-	return append(E.Bytes(), N.Bytes()...)
+	N := pk.N
+	return append(E.Bytes(), N...)
 }
 
 //Signature takes in a message and creates a signature. Use the
@@ -119,8 +133,9 @@ func (pk PublicKey) VerifySignature(sign []byte, msg []byte) error {
 	pssh.Write(msg)
 	hashed := pssh.Sum(nil)
 	var opts rsa.PSSOptions
+	pub := pk.GetKey()
 	err := rsa.VerifyPSS(
-		&pk.publicKey,
+		&pub,
 		newhash,
 		hashed,
 		sign, &opts)
