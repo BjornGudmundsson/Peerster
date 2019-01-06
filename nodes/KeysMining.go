@@ -145,6 +145,23 @@ func (gossiper *Gossiper) PublishPublicKey(name string, key rsa.PublicKey) bool 
 
 }
 
+func (gossiper *Gossiper) HandleBlockReply(reply *data.BlockReply)  {
+	if reply.Destination == gossiper.Name {
+		// the request is for me
+		gossiper.HandleNewBlock(reply.KeyBlockPublish)
+
+	} else {
+		// the request is for another peer
+		reply.KeyBlockPublish.HopLimit -= 1
+		if reply.KeyBlockPublish.HopLimit > 0 {
+			// create gossip packet with request and send it to Destination
+			packet := &data.GossipPacket{BlockReply: reply}
+			gossiper.SendPacketViaRoutingTable(packet, reply.Destination)
+
+		}
+	}
+}
+
 func (gossiper *Gossiper) HandleBlockRequest(request *data.BlockRequest) {
 	if request.Destination == gossiper.Name {
 		// the request is for me
@@ -157,7 +174,8 @@ func (gossiper *Gossiper) HandleBlockRequest(request *data.BlockRequest) {
 		gossiper.blockChainMutex.Unlock()
 
 		if found {
-			reply := &data.BlockReply{Destination: request.Origin, Origin: gossiper.Name, HopLimit: hoplimit, Block: *block.Block}
+			publish := &data.KeyBlockPublish{ Origin: gossiper.Name, HopLimit: hoplimit, Block: block.Block}
+			reply := &data.BlockReply{Destination: request.Origin, KeyBlockPublish: publish}
 			// create gossip packet with reply and send it
 			packet := &data.GossipPacket{BlockReply: reply}
 			gossiper.SendPacketViaRoutingTable(packet, request.Origin)
@@ -310,7 +328,9 @@ func (gossiper *Gossiper) BroadCastPacket(packet *data.GossipPacket) {
 func (gossiper *Gossiper) KeyMiningThread() {
 
 	for true {
+		fmt.Println("blocking")
 		gossiper.blockChainMutex.Lock()
+		fmt.Println("blocked")
 		headHash := [32]byte{}
 
 		thereWasChain := gossiper.headBlock != nil
@@ -367,6 +387,7 @@ func (gossiper *Gossiper) KeyMiningThread() {
 			blockPublish := &data.KeyBlockPublish{Block: newBlock, HopLimit: hoplimit, Origin: gossiper.Name}
 			packet := &data.GossipPacket{KeyBlockPublish: blockPublish}
 			gossiper.BroadCastPacket(packet)
+			fmt.Println("published")
 		}
 		gossiper.blockChainMutex.Unlock()
 	}
