@@ -194,7 +194,23 @@ func (gossiper *Gossiper) HandleBlockRequest(request *data.BlockRequest) {
 	}
 }
 
-func (gossiper *Gossiper) HandleKeyTransaction(transaction *data.KeyPublish)  {
+func (gossiper *Gossiper) HandleKeyTransaction(publish *data.KeyPublish)  {
+	transaction := publish.Transaction
+	// Check it is not published in the main chain
+	valid := gossiper.GetPublicKey(transaction.GetName()) == nil
+
+	gossiper.blockChainMutex.Lock()
+	// Check it is not in the pending transactions
+	for _, pending := range gossiper.pendingTransactions{
+		valid = valid && transaction.GetName() != pending.GetName()
+	}
+
+	if valid {
+		// Add it
+		gossiper.pendingTransactions = append(gossiper.pendingTransactions, transaction)
+	}
+	gossiper.blockChainMutex.Unlock()
+
 
 }
 
