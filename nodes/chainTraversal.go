@@ -28,7 +28,6 @@ func (g *Gossiper) GetAllPublicKeyInLongestChain() []peersterCrypto.PublicPair {
 		}
 		blockStruct, hasNext = g.blocksMap[hex.EncodeToString(block.PrevHash[:])]
 	}
-	fmt.Println("length list: ", len(list))
 	return list
 }
 

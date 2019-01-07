@@ -103,12 +103,8 @@ func (pk *PublicKey) Encrypt(msg []byte) ([]byte, error) {
 //Marshall marshalls the public key to a byte array
 func (pk PublicKey) Marshall() []byte {
 	e := pk.E
-<<<<<<< HEAD
 	buf := new(bytes.Buffer)
 	binary.Write(buf, binary.LittleEndian, e)
-=======
-	E := big.NewInt(int64(e))
->>>>>>> 53447510d8cbcf5c81cdf0ec75b893561dbd3e46
 	N := pk.N
 	return append(buf.Bytes(), N...)
 }

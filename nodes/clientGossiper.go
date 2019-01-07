@@ -334,8 +334,6 @@ func (g *Gossiper) ShareSecretWithPeer(wr http.ResponseWriter, req *http.Request
 	if peer == "" {
 		peer = g.Name
 	}
-	fmt.Println("filename: ", fn)
-	fmt.Println("Peer: ", peer)
 	g.ShareSecret(fn, peer)
 }
 
