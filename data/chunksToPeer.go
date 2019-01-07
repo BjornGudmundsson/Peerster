@@ -73,6 +73,9 @@ func (ctp *ChunkToPeer) SetOwnerOfMetafileHash(metafilehash, owner string) {
 //GetRandomOwnerOfChunk takes in a metafilehash and index and returns a random peer
 //that supposedly has that chunk.
 func (ctp *ChunkToPeer) GetRandomOwnerOfChunk(metafilehash string, index uint64) string {
+	if index == 0 {
+		return ctp.GetRandomOwnerOfMetafile(metafilehash)
+	}
 	chunkKeepers, ok := ctp.MetaFileToPeers[metafilehash][index]
 	if ok {
 		ran := rand.Int() % len(chunkKeepers)

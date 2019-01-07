@@ -9,6 +9,10 @@ import (
 	"net"
 	"net/http"
 
+	"github.com/BjornGudmundsson/Peerster/data/hashtable"
+
+	"github.com/BjornGudmundsson/Peerster/data/peersterCrypto"
+
 	"github.com/BjornGudmundsson/Peerster/data"
 	"github.com/dedis/protobuf"
 )
@@ -102,6 +106,18 @@ func (g *Gossiper) ServeHTTP(wr http.ResponseWriter, req *http.Request) {
 	}
 	if route == "/GetAllPublicKeys" {
 		g.GetAllPublicKeys(wr, req)
+		return
+	}
+	if route == "/ShareSecretWithPeer" {
+		g.ShareSecretWithPeer(wr, req)
+		return
+	}
+	if route == "/GetSecrets" {
+		g.GetSecrets(wr, req)
+		return
+	}
+	if route == "/DownloadSecretFile" {
+		g.DownloadSecretFile(wr, req)
 		return
 	}
 }
@@ -307,10 +323,80 @@ func (g *Gossiper) DownloadMetaFile(wr http.ResponseWriter, req *http.Request) {
 //logged on the longest chain
 func (g *Gossiper) GetAllPublicKeys(wr http.ResponseWriter, req *http.Request) {
 	pairs := g.GetAllPublicKeyInLongestChain()
-	for _, block := range g.blocksMap {
-		for _, tx := range block.Block.Transactions {
-			fmt.Println("Name: ", tx.GetName())
+	tpl.ExecuteTemplate(wr, "publicKeys.gohtml", pairs)
+}
+
+//ShareSecretWithPeer is a GUI route that shares a secret with a peer. The file has
+//to have been indexed before being shared or else nothing will happen.
+func (g *Gossiper) ShareSecretWithPeer(wr http.ResponseWriter, req *http.Request) {
+	fn := req.FormValue("filename")
+	peer := req.FormValue("peer")
+	if peer == "" {
+		peer = g.Name
+	}
+	fmt.Println("filename: ", fn)
+	fmt.Println("Peer: ", peer)
+	g.ShareSecret(fn, peer)
+}
+
+//GetSecrets renders a template showing the names of the files
+//that have been shared with this peer.
+func (g *Gossiper) GetSecrets(wr http.ResponseWriter, req *http.Request) {
+	var name string
+	val := req.URL.Query()["name"][0]
+	if val == "" {
+		name = g.Name
+	} else {
+		name = val
+	}
+	fmt.Println("Val: ", val, name)
+	secrets := g.GetSecretsForPeer(name)
+	verifiedSecrets := make([]peersterCrypto.Secret, 0)
+	priv := g.PrivateKey
+	for _, eSecret := range secrets {
+		secret, e := priv.DecryptSecret(&eSecret)
+		if e == nil {
+			verifiedSecrets = append(verifiedSecrets, *secret)
 		}
 	}
-	tpl.ExecuteTemplate(wr, "publicKeys.gohtml", pairs)
+
+	//Indexing the file metadata locally for the gossiper.
+	for _, secret := range verifiedSecrets {
+		mfh := hex.EncodeToString(secret.MetaFileHash)
+		p := hashtable.HashStringInt(mfh)
+		p1, p2 := g.ChordTable.GetPlaceInChord(p)
+		if p1 != nil {
+			node := g.ChordTable.GetNodeAtPosition(p1)
+			g.ChunkToPeer.AddOwnerForMetafileHash(node, mfh)
+		}
+		if p2 != nil {
+			node := g.ChordTable.GetNodeAtPosition(p2)
+			g.ChunkToPeer.AddOwnerForMetafileHash(node, mfh)
+		}
+		fmt.Println("IV", secret.IV)
+		md := data.MetaData{
+			FileName:       secret.FileName,
+			FileSize:       7,
+			IV:             secret.IV,
+			Key:            secret.Key,
+			MetaFile:       nil,
+			HashOfMetaFile: mfh,
+		}
+		g.Files[secret.FileName] = md
+	}
+	tpl.ExecuteTemplate(wr, "secrets.gohtml", verifiedSecrets)
+}
+
+func (g *Gossiper) DownloadSecretFile(wr http.ResponseWriter, req *http.Request) {
+	query := req.URL.Query()["filename"]
+	if len(query) == 0 {
+		log.Fatal(errors.New("Did not put in a query parameter"))
+	}
+	fn := query[0]
+	if _, ok := g.Files[fn]; !ok {
+		log.Fatal(errors.New("This file has not been indexed"))
+	}
+	fmt.Println("Metadata: ", g.Files[fn])
+	go g.DownloadingFile(fn)
+	http.Redirect(wr, req, req.URL.Host, http.StatusSeeOther)
 }

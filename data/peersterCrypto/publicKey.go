@@ -157,7 +157,7 @@ func (priv *PrivateKey) EncryptSecret(s *Secret, pk PublicKey) (*EncryptedSecret
 	if err != nil {
 		return nil, err
 	}
-	ecns := NewEncryptedSecret(encIV, encFN, encKey, sign, encMFH, myPk, s.Origin)
+	ecns := NewEncryptedSecret(encIV, encFN, encKey, sign, encMFH, myPk, s.Origin, s.Destination)
 	return ecns, nil
 }
 
@@ -177,7 +177,7 @@ func (priv *PrivateKey) DecryptSecret(es *EncryptedSecret) (*Secret, error) {
 	if verify != nil {
 		return nil, verify
 	}
-	secret := NewSecret(string(fn), src, pk, MFH, IV, key)
+	secret := NewSecret(string(fn), src, es.Destination, pk, MFH, IV, key)
 	return secret, nil
 }
 

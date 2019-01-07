@@ -31,3 +31,26 @@ func (g *Gossiper) GetAllPublicKeyInLongestChain() []peersterCrypto.PublicPair {
 	fmt.Println("length list: ", len(list))
 	return list
 }
+
+//GetSecretsForPeer gets the secrets that are meant for a peer.
+func (g *Gossiper) GetSecretsForPeer(peer string) []peersterCrypto.EncryptedSecret {
+	// No blockChain initialised
+	list := make([]peersterCrypto.EncryptedSecret, 0)
+	blockStruct := g.headBlock
+	hasNext := true
+	for hasNext {
+		block := blockStruct.Block
+		for _, transaction := range block.Transactions {
+			tx := &transaction
+			if !tx.IsKeyPublish() {
+				fmt.Println("me?", tx.Secret.Destination, peer)
+				secret := tx.Secret
+				if tx.Secret.Destination == peer {
+					list = append(list, *secret)
+				}
+			}
+		}
+		blockStruct, hasNext = g.blocksMap[hex.EncodeToString(block.PrevHash[:])]
+	}
+	return list
+}

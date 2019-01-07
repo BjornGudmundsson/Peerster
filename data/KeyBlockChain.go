@@ -22,7 +22,7 @@ type BlockRequest struct {
 }
 
 type BlockReply struct {
-	Destination string
+	Destination     string
 	KeyBlockPublish *KeyBlockPublish
 }
 
@@ -65,6 +65,14 @@ func NewEncryptionKeyTransaction(key rsa.PublicKey, name string) *KeyTransaction
 	}
 }
 
+//NewSecretKeyTransaction creates a new key transactions that has
+//a secret sharing transactions
+func NewSecretKeyTransaction(secret *peersterCrypto.EncryptedSecret) *KeyTransaction {
+	return &KeyTransaction{
+		Secret: secret,
+	}
+}
+
 //Hash returns the hash of a key transaction.
 //Acts accordingly to which transactions is present.
 func (t *KeyTransaction) Hash() (out [32]byte) {
@@ -86,7 +94,7 @@ func (t *KeyTransaction) IsKeyPublish() bool {
 //GetName returns the name of the node that published a public key
 //returns an empty string if there is no key publish in the transaction.
 func (t *KeyTransaction) GetName() string {
-	if t.IsKeyPublish() {
+	if !t.IsKeyPublish() {
 		return ""
 	}
 	return t.KeyPublish.Origin

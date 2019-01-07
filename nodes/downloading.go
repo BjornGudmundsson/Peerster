@@ -9,6 +9,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/BjornGudmundsson/Peerster/data/peersterCrypto"
+
 	"github.com/BjornGudmundsson/Peerster/data"
 )
 
@@ -26,14 +28,19 @@ func (g *Gossiper) DownloadingFile(filename string) {
 	//All chunks will go through this channel
 	chunkChannel := make(chan data.DataReply)
 	var gotMetaFile bool
+	lkd := g.ChunkToPeer.GetRandomOwnerOfMetafile(metafileHash)
+	if lkd == g.Name {
+		metafile, e := hex.DecodeString(g.Chunks[metafileHash])
+	}
 	var nxtChunk []byte
-	if metadata.MetaFile == nil {
+	if metadata.MetaFile == nil && lkd != g.Name {
 		lastKnownDestination = g.ChunkToPeer.GetRandomOwnerOfMetafile(metafileHash)
 		nxtChunk, _ = hex.DecodeString(metafileHash)
 		mfh := metafileHash
 		g.HandlerDataReplies.AddChunk(mfh, chunkChannel)
 		g.SendDataRequest(lastKnownDestination, nxtChunk)
 	} else {
+		mfile := hex.En
 		isFullyDownloaded, nxtIndex := g.HasAllChunksOfFile(metadata.MetaFile)
 		if isFullyDownloaded {
 			g.ReconstructFile(filename, metadata.MetaFile)
@@ -43,6 +50,8 @@ func (g *Gossiper) DownloadingFile(filename string) {
 		lastKnownDestination = g.ChunkToPeer.GetRandomOwnerOfChunk(metafileHash, (nxtIndex/32)+1)
 		g.HandlerDataReplies.AddMetafile(metafile, chunkChannel)
 		g.SendDataRequest(lastKnownDestination, nxtChunk)
+		g.Chunks[metadata.HashOfMetaFile] = hex.EncodeToString(metadata.MetaFile)
+		g.PopulateFromMetafile(metadata.MetaFile, filename)
 	}
 	for {
 		ticker := time.NewTicker(5 * time.Second)
@@ -51,10 +60,11 @@ func (g *Gossiper) DownloadingFile(filename string) {
 			hash := datareply.HashValue
 			hashHex := hex.EncodeToString(hash)
 			if hashHex == metafileHash {
-				fmt.Println("DOWNLOADING metafile")
 				mf := datareply.Data
 				metadata.MetaFile = datareply.Data
+				g.Chunks[metafileHash] = hex.EncodeToString(datareply.Data)
 				g.Files[filename] = metadata
+				g.PopulateFromMetafile(metadata.MetaFile, filename)
 				_, i := g.HasAllChunksOfFile(meta)
 				lastKnownDestination = g.ChunkToPeer.GetRandomOwnerOfChunk(metafileHash, (i/32)+1)
 				if g.Files[filename].MetaFile != nil {
@@ -73,7 +83,6 @@ func (g *Gossiper) DownloadingFile(filename string) {
 			} else {
 				md := g.Files[filename]
 				g.Chunks[hashHex] = string(datareply.Data)
-				fmt.Println("Got this data: ", string(datareply.Data))
 				done, index := g.HasAllChunksOfFile(md.MetaFile)
 				if done {
 					g.ReconstructFile(filename, md.MetaFile)
@@ -88,6 +97,7 @@ func (g *Gossiper) DownloadingFile(filename string) {
 		case <-ticker.C:
 			//I'll keep persisting until I get a datarequest
 			//g.SendDataRequest(lastKnownDestination, nxtChunk)
+			//lastKnownDestination = g.ChunkToPeer.GetRandomOwnerOfChunk()
 			g.SendDataRequest(lastKnownDestination, nxtChunk)
 		}
 	}
@@ -108,11 +118,19 @@ func (g *Gossiper) ReconstructFile(filename string, metafile []byte) {
 	if e != nil {
 		log.Fatal(e)
 	}
+	md := g.Files[filename]
+	IV := md.IV
+	Key := md.Key
+	buffer := make([]byte, 0)
 	for i := 0; i < n; i++ {
 		j := i + 1
 		chunk := hex.EncodeToString(metafile[i*32 : j*32])
-		fmt.Println("Chunk databit: ", g.Chunks[chunk])
-		fmt.Fprintf(f, g.Chunks[chunk])
+		buffer = append(buffer, []byte(g.Chunks[chunk])...)
 	}
+	decryptedFile, e := peersterCrypto.DecryptCiphertext(buffer, Key, IV)
+	if e != nil {
+		log.Fatal(e)
+	}
+	fmt.Fprintf(f, string(decryptedFile))
 	fmt.Printf("Reconstructed file %v", filename)
 }
