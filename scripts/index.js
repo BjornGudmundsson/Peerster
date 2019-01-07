@@ -69,3 +69,16 @@ $('#DownloadMetaFileForm').submit(function(e){
         }
     });
 });
+
+
+$('#ShareSecretWithPeerForm').submit(function(e){
+    e.preventDefault();
+    $.ajax({
+        url:'/ShareSecretWithPeer',
+        type:'post',
+        data:$('#ShareSecretWithPeerForm').serialize(),
+        success:function(){
+            //whatever you wanna do after the form is successfully submitted
+        }
+    });
+});

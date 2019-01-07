@@ -19,14 +19,14 @@ func Test_EncryptDecryptAsymmetric(t *testing.T) {
 	metafilehash := pc.GetIV(16)
 	src := "Bjorn"
 	fn := "Secret file"
-	secret := pc.NewSecret(fn, src, pub2, metafilehash, IV, key)
+	secret := pc.NewSecret(fn, src, "jon", pub2, metafilehash, IV, key)
 	require.NotNil(t, secret)
 	encryptedSecret, e := priv1.EncryptSecret(secret, pub2)
-	require.Nil(t, e)
+	require.Nil(t, e, "Should be able to encrypt")
 	decryptedSecret, e := priv2.DecryptSecret(encryptedSecret)
-	require.Nil(t, e)
-	require.NotNil(t, decryptedSecret)
-	require.True(t, pc.CompareSecrets(secret, decryptedSecret))
+	require.Nil(t, e, "Decrypting the secret should work")
+	require.NotNil(t, decryptedSecret, "Should have gotten back a value")
+	require.True(t, pc.CompareSecrets(secret, decryptedSecret), "Secrets should be equal")
 	//Decrypting the secret using a wrong public key
 	priv3 := pc.NewPrivateKey()
 	_, e = priv3.DecryptSecret(encryptedSecret)

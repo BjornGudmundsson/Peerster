@@ -1,6 +1,7 @@
 package nodes
 
 import (
+	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
 	"math/big"
@@ -82,6 +83,17 @@ func (g *Gossiper) SendChunkStoreReply(hash, dst, src string, r bool) {
 //SpreadMetaFile spreads the metafile to their respective nodes
 func (g *Gossiper) SpreadMetaFile(data []byte) {
 	n := len(data)
+	hash := sha256.New()
+	mfh := hash.Sum(data)
+	hexHash := hex.EncodeToString(mfh)
+	p := hashtable.HashStringInt(hexHash)
+	p1, p2 := g.ChordTable.GetPlaceInChord(p)
+	if p1 != nil {
+		g.GiveChunk(hexHash, hex.EncodeToString(data), p1)
+	}
+	if p2 != nil {
+		g.GiveChunk(hexHash, hex.EncodeToString(data), p2)
+	}
 	for i := 0; i < n; i = i + 32 {
 		j := i + 32
 		chunk := data[i:j]

@@ -126,9 +126,7 @@ func (gossiper *Gossiper) PublishPublicKey(name string, key rsa.PublicKey) bool 
 	// check if the name already has an associated key
 	// neither in the pending transactions
 	newTransaction := data.NewEncryptionKeyTransaction(key, name)
-	fmt.Println("helo", (gossiper.GetPublicKey(name)) == nil && gossiper.checkInsidePendingTransactions(newTransaction))
 	if gossiper.GetPublicKey(name) == nil && gossiper.checkInsidePendingTransactions(newTransaction) {
-		fmt.Println("Bjorn")
 		// add the transaction to the pending transactions
 		gossiper.blockChainMutex.Lock()
 		gossiper.pendingTransactions = append(gossiper.pendingTransactions, newTransaction)
@@ -145,7 +143,7 @@ func (gossiper *Gossiper) PublishPublicKey(name string, key rsa.PublicKey) bool 
 
 }
 
-func (gossiper *Gossiper) HandleBlockReply(reply *data.BlockReply)  {
+func (gossiper *Gossiper) HandleBlockReply(reply *data.BlockReply) {
 	if reply.Destination == gossiper.Name {
 		// the request is for me
 		gossiper.HandleNewBlock(reply.KeyBlockPublish)
@@ -174,7 +172,7 @@ func (gossiper *Gossiper) HandleBlockRequest(request *data.BlockRequest) {
 		gossiper.blockChainMutex.Unlock()
 
 		if found {
-			publish := &data.KeyBlockPublish{ Origin: gossiper.Name, HopLimit: hoplimit, Block: block.Block}
+			publish := &data.KeyBlockPublish{Origin: gossiper.Name, HopLimit: hoplimit, Block: block.Block}
 			reply := &data.BlockReply{Destination: request.Origin, KeyBlockPublish: publish}
 			// create gossip packet with reply and send it
 			packet := &data.GossipPacket{BlockReply: reply}
@@ -326,13 +324,9 @@ func (gossiper *Gossiper) BroadCastPacket(packet *data.GossipPacket) {
 }
 
 func (gossiper *Gossiper) KeyMiningThread() {
-
 	for true {
-		fmt.Println("blocking")
 		gossiper.blockChainMutex.Lock()
-		fmt.Println("blocked")
 		headHash := [32]byte{}
-
 		thereWasChain := gossiper.headBlock != nil
 		if thereWasChain {
 			// A block has already been added
@@ -342,6 +336,7 @@ func (gossiper *Gossiper) KeyMiningThread() {
 		// Save in listToPublish all pending transactions to create a new Block
 		listToPublish := make([]data.KeyTransaction, len(gossiper.pendingTransactions))
 		if len(listToPublish) == 0 {
+			gossiper.blockChainMutex.Unlock()
 			continue
 		}
 		for i, pointer := range gossiper.pendingTransactions {

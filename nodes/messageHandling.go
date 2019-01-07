@@ -53,6 +53,7 @@ func (g *Gossiper) delegateMessages(ch chan GossipAddress) {
 			}
 			if msg.Msg.BlockReply != nil {
 				//Handle this
+				go g.HandleBlockReply(msg.Msg.BlockReply)
 			}
 		}
 	}

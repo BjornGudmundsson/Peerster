@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"crypto/sha256"
 	"encoding/hex"
-	"fmt"
 	"log"
 	"math"
 	"mime/multipart"
@@ -57,20 +56,23 @@ func (g *Gossiper) HandleNewFile(fh *multipart.FileHeader, f multipart.File) {
 		g.Chunks[hxhash] = chunkString
 		metafile = append(metafile, tempbs...)
 	}
-	//go g.SpreadMetaFile(metafile)
+	go g.SpreadMetaFile(metafile)
 	hashMF := sha256.Sum256(metafile)
 	hashMFBs := make([]byte, 0)
 	for _, b := range hashMF {
 		hashMFBs = append(hashMFBs, b)
 	}
 	hexHash := hex.EncodeToString(hashMFBs)
+	g.Chunks[hexHash] = hex.EncodeToString(metafile)
 	mf := &data.MetaData{
 		FileName:       fh.Filename,
 		FileSize:       fSize,
 		MetaFile:       metafile,
 		HashOfMetaFile: hexHash,
+		IV:             IV,
+		Key:            key,
 	}
-	g.Files[mf.HashOfMetaFile] = *mf
+	g.Files[mf.FileName] = *mf
 }
 
 //HandleNewOSFile takes in a filename and gets
@@ -96,8 +98,6 @@ func (g *Gossiper) HandleNewOSFile(fn string) {
 	div := float64(fSize) / float64(chunkSize)
 	metafile := make([]byte, 0)
 	sizeInChunks := uint64(math.Ceil(div))
-	fmt.Println("Size: ", fSize)
-	fmt.Println("sizeInChunks", sizeInChunks)
 	for i := uint64(0); i < sizeInChunks; i++ {
 		buf := make([]byte, chunkSize)
 		n, _ := f.Read(buf)

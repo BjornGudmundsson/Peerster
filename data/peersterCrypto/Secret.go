@@ -9,6 +9,7 @@ import "crypto/sha256"
 //except for Origin and the
 //PublicKey
 type EncryptedSecret struct {
+	Destination  string
 	FileName     []byte
 	Origin       string
 	Publickey    PublicKey
@@ -42,8 +43,9 @@ func (es *EncryptedSecret) Compare(e *EncryptedSecret) bool {
 }
 
 //NewEncryptedSecret returns a new encrypted secret
-func NewEncryptedSecret(IV, fn, key, sign, mfh []byte, pk PublicKey, src string) *EncryptedSecret {
+func NewEncryptedSecret(IV, fn, key, sign, mfh []byte, pk PublicKey, src, dst string) *EncryptedSecret {
 	return &EncryptedSecret{
+		Destination:  dst,
 		MetaFileHash: mfh,
 		FileName:     fn,
 		IV:           IV,
@@ -57,6 +59,7 @@ func NewEncryptedSecret(IV, fn, key, sign, mfh []byte, pk PublicKey, src string)
 //Secret is the decrypted
 //secret.
 type Secret struct {
+	Destination  string
 	FileName     string
 	Origin       string
 	PublicKey    PublicKey
@@ -96,8 +99,9 @@ func CompareSecrets(s1, s2 *Secret) bool {
 }
 
 //NewSecret returns a pointer to a new secret
-func NewSecret(fn, src string, pk PublicKey, mfh, iv, key []byte) *Secret {
+func NewSecret(fn, src, dst string, pk PublicKey, mfh, iv, key []byte) *Secret {
 	return &Secret{
+		Destination:  dst,
 		FileName:     fn,
 		Origin:       src,
 		PublicKey:    pk,

@@ -17,7 +17,7 @@ func (g *Gossiper) handleDataRequestMessage(msg GossipAddress) {
 	g.RoutingTable.UpdateRoutingTable(req.Origin, msg.Addr)
 	hash := req.HashValue
 	hexHash := hex.EncodeToString(hash)
-	metafile, ok := g.Files[hexHash]
+	/*metafile, ok := g.Files[hexHash]
 	if ok {
 		//Send the metafile
 		mf := metafile.HashOfMetaFile
@@ -41,7 +41,7 @@ func (g *Gossiper) handleDataRequestMessage(msg GossipAddress) {
 		}
 		g.sendMessageToNeighbour(&gp, nxtHop)
 		return
-	}
+	}*/
 	txt, ok := g.Chunks[hexHash]
 	if ok {
 		dr := data.DataReply{}
