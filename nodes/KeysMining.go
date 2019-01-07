@@ -352,7 +352,8 @@ func (gossiper *Gossiper) HandleNewBlock(blockPublish *data.KeyBlockPublish) {
 					fmt.Println("ADDING BLOCK", hex.EncodeToString(newBlockHash[:]))
 					gossiper.blocksMap[hex.EncodeToString(newBlockHash[:])] = newBlockStruct
 
-					if gossiper.headBlock.len < newBlockStruct.len {
+					if gossiper.headBlock == nil ||
+						gossiper.headBlock.len < newBlockStruct.len {
 						// change head
 						gossiper.headBlock = newBlockStruct
 
@@ -481,6 +482,9 @@ func (gossiper *Gossiper) KeyMiningThread() {
 			packet := &data.GossipPacket{KeyBlockPublish: blockPublish}
 			gossiper.BroadCastPacket(packet)
 			//fmt.Println("published")
+
+			gossiper.printBlockChain()
+
 			time.Sleep( 100 * time.Millisecond)
 		}
 		//fmt.Println("unlocking KeyMiningThread")
@@ -488,4 +492,28 @@ func (gossiper *Gossiper) KeyMiningThread() {
 		//fmt.Println("unlocked KeyMiningThread")
 
 	}
+}
+
+func (gossiper *Gossiper) printBlockChain()  {
+	found := false
+	blockStruct := gossiper.headBlock
+	hasNext := blockStruct != nil
+	s := "BLOCKCHAIN: "
+
+	for !found && hasNext {
+		block := blockStruct.Block
+		blockHash := block.Hash()
+		s += hex.EncodeToString(blockHash[:])
+		for _, transaction := range block.Transactions {
+			if transaction.IsKeyPublish(){
+				s += ":" + transaction.GetName()
+			}else {
+				s += "|" + transaction.Secret.Origin
+			}
+		}
+		s += " "
+		blockStruct, hasNext = gossiper.blocksMap[hex.EncodeToString(block.PrevHash[:])]
+
+	}
+	fmt.Println(s)
 }
