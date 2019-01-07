@@ -30,17 +30,21 @@ func (g *Gossiper) DownloadingFile(filename string) {
 	var gotMetaFile bool
 	lkd := g.ChunkToPeer.GetRandomOwnerOfMetafile(metafileHash)
 	if lkd == g.Name {
-		//metafile, e := hex.DecodeString(g.Chunks[metafileHash])
+		mf, e := hex.DecodeString(g.Chunks[metafileHash])
+		if e != nil {
+			log.Fatal(e)
+		}
+		metadata.MetaFile = mf
+		g.Files[filename] = metadata
 	}
 	var nxtChunk []byte
-	if metadata.MetaFile == nil && lkd != g.Name {
+	if metadata.MetaFile == nil {
 		lastKnownDestination = g.ChunkToPeer.GetRandomOwnerOfMetafile(metafileHash)
 		nxtChunk, _ = hex.DecodeString(metafileHash)
 		mfh := metafileHash
 		g.HandlerDataReplies.AddChunk(mfh, chunkChannel)
 		g.SendDataRequest(lastKnownDestination, nxtChunk)
 	} else {
-		//mfile := hex.En
 		isFullyDownloaded, nxtIndex := g.HasAllChunksOfFile(metadata.MetaFile)
 		if isFullyDownloaded {
 			g.ReconstructFile(filename, metadata.MetaFile)
@@ -85,6 +89,7 @@ func (g *Gossiper) DownloadingFile(filename string) {
 				g.Chunks[hashHex] = string(datareply.Data)
 				done, index := g.HasAllChunksOfFile(md.MetaFile)
 				if done {
+					fmt.Println("starting to reconstruct file")
 					g.ReconstructFile(filename, md.MetaFile)
 					g.HandlerDataReplies.DeleteMetafile(md.MetaFile)
 					return
@@ -106,6 +111,7 @@ func (g *Gossiper) DownloadingFile(filename string) {
 //ReconstructFile takes in the filename and metafile and reconstructs the
 //file from that and adds it to the downloaded function.
 func (g *Gossiper) ReconstructFile(filename string, metafile []byte) {
+	fmt.Println("Reconstructing file")
 	//This reconstructs the file. Don't feel like writing it right now.
 	n := len(metafile) / 32
 	dir, err := filepath.Abs(filepath.Dir(os.Args[0]))
@@ -116,9 +122,11 @@ func (g *Gossiper) ReconstructFile(filename string, metafile []byte) {
 	fp := strings.Join(temp, "/")
 	f, e := os.Create(fp)
 	if e != nil {
+		fmt.Println("os create")
 		log.Fatal(e)
 	}
 	md := g.Files[filename]
+	fmt.Println("metadata reconstruction: ")
 	IV := md.IV
 	Key := md.Key
 	buffer := make([]byte, 0)
@@ -127,8 +135,11 @@ func (g *Gossiper) ReconstructFile(filename string, metafile []byte) {
 		chunk := hex.EncodeToString(metafile[i*32 : j*32])
 		buffer = append(buffer, []byte(g.Chunks[chunk])...)
 	}
+	fmt.Println("created the buffer")
+	fmt.Println("multiple of blocksize", len(buffer)%keySize == 0, len(buffer))
 	decryptedFile, e := peersterCrypto.DecryptCiphertext(buffer, Key, IV)
 	if e != nil {
+		fmt.Println("Got an error")
 		log.Fatal(e)
 	}
 	fmt.Fprintf(f, string(decryptedFile))
