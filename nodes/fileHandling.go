@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"crypto/sha256"
 	"encoding/hex"
+	"fmt"
 	"log"
 	"math"
 	"mime/multipart"
@@ -39,8 +40,10 @@ func (g *Gossiper) HandleNewFile(fh *multipart.FileHeader, f multipart.File) {
 	if e != nil {
 		log.Fatal(e)
 	}
+	fmt.Println("Length of encrypted data: ", len(encryptedFileData))
+	encryptedSize := len(encryptedFileData)
 	reader := bytes.NewReader(encryptedFileData)
-	div := float64(fSize) / float64(chunkSize)
+	div := float64(encryptedSize) / float64(chunkSize)
 	metafile := make([]byte, 0)
 	sizeInChunks := uint64(math.Ceil(div))
 	for i := uint64(0); i < sizeInChunks; i++ {

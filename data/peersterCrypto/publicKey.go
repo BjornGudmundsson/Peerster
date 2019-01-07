@@ -1,10 +1,12 @@
 package peersterCrypto
 
 import (
+	"bytes"
 	"crypto"
 	"crypto/rand"
 	"crypto/rsa"
 	"crypto/sha256"
+	"encoding/binary"
 	"math/big"
 )
 
@@ -101,9 +103,10 @@ func (pk *PublicKey) Encrypt(msg []byte) ([]byte, error) {
 //Marshall marshalls the public key to a byte array
 func (pk PublicKey) Marshall() []byte {
 	e := pk.e
-	E := big.NewInt(int64(e))
+	buf := new(bytes.Buffer)
+	binary.Write(buf, binary.LittleEndian, e)
 	N := pk.N
-	return append(E.Bytes(), N...)
+	return append(buf.Bytes(), N...)
 }
 
 //Signature takes in a message and creates a signature. Use the
