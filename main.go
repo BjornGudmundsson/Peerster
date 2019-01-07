@@ -29,5 +29,4 @@ func main() {
 	go g.AntiEntropy()
 	g.SetPublicKey()
 	g.KeyMiningThread()
-
 }

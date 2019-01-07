@@ -16,7 +16,7 @@ import (
 	"github.com/BjornGudmundsson/Peerster/data"
 )
 
-const chunkSize uint64 = 8
+const chunkSize uint64 = 64
 const keySize int = 16
 
 //HandleNewFile takes in a multipart.Fileheader and a multipart file and processes

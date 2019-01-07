@@ -13,6 +13,7 @@ import (
 
 //HandleChunkStoreRequest handles chunk store request structs
 func (g *Gossiper) HandleChunkStoreRequest(msg GossipAddress) {
+	fmt.Println("Got chunk store request")
 	csr := msg.Msg.ChunkStoreRequest
 	dst := csr.Destination
 	if dst != g.Name {
@@ -24,6 +25,7 @@ func (g *Gossiper) HandleChunkStoreRequest(msg GossipAddress) {
 	hexData := string(data)
 	//This is a very liberal system. we just accept any chunk
 	g.Chunks[hash] = hexData
+
 	g.SendChunkStoreReply(hash, csr.Src, g.Name, true)
 }
 
@@ -131,17 +133,19 @@ func (g *Gossiper) GiveChunk(chunk, d string, b *big.Int) {
 		case reply := <-ch:
 			fmt.Println("got reply", reply.Reply, reply.Destination)
 			g.ReplyHandler.RemoveProcess(identifier)
+			ticker = time.NewTicker(2 * time.Second)
 			return
 		case <-ticker.C:
 			fmt.Println("ticker expired")
-			if counter == 5 {
+			if counter == 15 {
+				fmt.Println("This chunk expired")
 				g.ReplyHandler.RemoveProcess(identifier)
 				return
 			}
 			ticker = time.NewTicker(2 * time.Second)
 			counter = counter + 1
 			g.SendChunkStoreRequest(chunk, dstNode, g.Name, Data)
-			time.Sleep(1 * time.Second)
+			//time.Sleep(1 * time.Second)
 		}
 	}
 }
@@ -155,5 +159,7 @@ func (g *Gossiper) HandleChunkStoreReply(msg *data.GossipPacket) {
 		g.SendChunkStoreReply(hash, dst, reply.Src, true)
 		return
 	}
+	fmt.Println("Got store reply")
 	g.ReplyHandler.PassToProcess(reply)
+	fmt.Println("Am I in a deadlock")
 }

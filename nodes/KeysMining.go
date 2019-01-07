@@ -4,9 +4,10 @@ import (
 	"crypto/rsa"
 	"encoding/hex"
 	"fmt"
-	"github.com/BjornGudmundsson/Peerster/data/peersterCrypto"
 	"math/rand"
 	"time"
+
+	"github.com/BjornGudmundsson/Peerster/data/peersterCrypto"
 
 	"github.com/BjornGudmundsson/Peerster/data"
 )
@@ -215,7 +216,7 @@ func (gossiper *Gossiper) HandleBlockRequest(request *data.BlockRequest) {
 	}
 }
 
-func (gossiper *Gossiper) HandleKeyTransaction(publish *data.KeyPublish)  {
+func (gossiper *Gossiper) HandleKeyTransaction(publish *data.KeyPublish) {
 	fmt.Println("New transaction")
 	transaction := publish.Transaction
 	// Check it is not published in the main chain
@@ -225,7 +226,7 @@ func (gossiper *Gossiper) HandleKeyTransaction(publish *data.KeyPublish)  {
 	gossiper.blockChainMutex.Lock()
 	//fmt.Println("locked HandleKeyTransaction")
 	// Check it is not in the pending transactions
-	for _, pending := range gossiper.pendingTransactions{
+	for _, pending := range gossiper.pendingTransactions {
 		valid = valid && transaction.GetName() != pending.GetName()
 	}
 
@@ -236,8 +237,6 @@ func (gossiper *Gossiper) HandleKeyTransaction(publish *data.KeyPublish)  {
 	//fmt.Println("unlocking HandleKeyTransaction")
 	gossiper.blockChainMutex.Unlock()
 	//fmt.Println("unlocked HandleKeyTransaction")
-
-
 
 }
 
@@ -274,7 +273,7 @@ func (gossiper *Gossiper) HandleNewBlock(blockPublish *data.KeyBlockPublish) {
 				//fmt.Println("locked HandleNewBlock")
 				newBlockStruct := &pairBlockLen{Block: newBlock, len: 1}
 				// add to the chain
-				fmt.Println("ADDING BLOCK", hex.EncodeToString(newBlockHash[:]))
+				//fmt.Println("ADDING BLOCK", hex.EncodeToString(newBlockHash[:]))
 				gossiper.blocksMap[hex.EncodeToString(newBlockHash[:])] = newBlockStruct
 				//fmt.Println("unlocking HandleNewBlock")
 				gossiper.blockChainMutex.Unlock()
@@ -289,8 +288,7 @@ func (gossiper *Gossiper) HandleNewBlock(blockPublish *data.KeyBlockPublish) {
 
 			}
 
-
-		}else {
+		} else {
 			//fmt.Println("not first block")
 			//fmt.Println("locking HandleNewBlock")
 			gossiper.blockChainMutex.Lock()
@@ -303,7 +301,7 @@ func (gossiper *Gossiper) HandleNewBlock(blockPublish *data.KeyBlockPublish) {
 			if !haveIt {
 				//fmt.Println("i don't have the prev", hex.EncodeToString(newBlock.PrevHash[:]))
 				if len(blockPublish.Block.Transactions) > 0 {
-					fmt.Println(*blockPublish.Block.Transactions[0].KeyPublish)
+					//fmt.Println(*blockPublish.Block.Transactions[0].KeyPublish)
 					//fmt.Println(*blockPublish.Block.Transactions[0].Secret)
 				}
 				gossiper.RequestBlock(newBlock.PrevHash, blockPublish.Origin)
@@ -349,7 +347,7 @@ func (gossiper *Gossiper) HandleNewBlock(blockPublish *data.KeyBlockPublish) {
 					newBlockStruct := &pairBlockLen{Block: newBlock, len: prevBlockStruct.len + 1}
 
 					// add to the chain
-					fmt.Println("ADDING BLOCK", hex.EncodeToString(newBlockHash[:]))
+					//fmt.Println("ADDING BLOCK", hex.EncodeToString(newBlockHash[:]))
 					gossiper.blocksMap[hex.EncodeToString(newBlockHash[:])] = newBlockStruct
 
 					if gossiper.headBlock == nil ||
@@ -380,8 +378,7 @@ func (gossiper *Gossiper) HandleNewBlock(blockPublish *data.KeyBlockPublish) {
 			}
 		}
 
-
-	}else{
+	} else {
 		//fmt.Println("wrong block?")
 		if len(blockPublish.Block.Transactions) > 0 {
 			//fmt.Println(*blockPublish.Block.Transactions[0].KeyPublish)
@@ -427,10 +424,10 @@ func (gossiper *Gossiper) KeyMiningThread() {
 		// Save in listToPublish all pending transactions to create a new Block
 		listToPublish := make([]data.KeyTransaction, len(gossiper.pendingTransactions))
 		/*
-		if len(listToPublish) == 0 {
-			gossiper.blockChainMutex.Unlock()
-			continue
-		}*/
+			if len(listToPublish) == 0 {
+				gossiper.blockChainMutex.Unlock()
+				continue
+			}*/
 		for i, pointer := range gossiper.pendingTransactions {
 			listToPublish[i] = *pointer
 		}
@@ -449,13 +446,12 @@ func (gossiper *Gossiper) KeyMiningThread() {
 		if valid {
 
 			// new valid block found!
-			fmt.Println("FOUND-KEY-BLOCK", hex.EncodeToString(newHash[:]))
+			//fmt.Println("FOUND-KEY-BLOCK", hex.EncodeToString(newHash[:]))
 
 			if len(newBlock.Transactions) > 0 {
-				fmt.Println(*newBlock.Transactions[0].KeyPublish)
+				//fmt.Println(*newBlock.Transactions[0].KeyPublish)
 				//fmt.Println(*block.Block.Transactions[0].Secret)
 			}
-
 
 			// count length (prev + 1)
 			newBlockStruct := &pairBlockLen{Block: newBlock, len: 1}
@@ -465,13 +461,13 @@ func (gossiper *Gossiper) KeyMiningThread() {
 			}
 
 			// add to the chain
-			fmt.Println("ADDING BLOCK", hex.EncodeToString(newHash[:]))
+			//fmt.Println("ADDING BLOCK", hex.EncodeToString(newHash[:]))
 			gossiper.blocksMap[hex.EncodeToString(newHash[:])] = newBlockStruct
 
 			// change head
 			gossiper.headBlock = newBlockStruct
-			s := "KEY-CHAIN " + hex.EncodeToString(newHash[:])
-			fmt.Println(s)
+			//s := "KEY-CHAIN " + hex.EncodeToString(newHash[:])
+			//fmt.Println(s)
 
 			// all pending transactions have been added, removing them
 			gossiper.pendingTransactions = make([]*data.KeyTransaction, 0)
@@ -485,7 +481,7 @@ func (gossiper *Gossiper) KeyMiningThread() {
 
 			gossiper.printBlockChain()
 
-			time.Sleep( 100 * time.Millisecond)
+			time.Sleep(100 * time.Millisecond)
 		}
 		//fmt.Println("unlocking KeyMiningThread")
 		gossiper.blockChainMutex.Unlock()
@@ -494,7 +490,7 @@ func (gossiper *Gossiper) KeyMiningThread() {
 	}
 }
 
-func (gossiper *Gossiper) printBlockChain()  {
+func (gossiper *Gossiper) printBlockChain() {
 	found := false
 	blockStruct := gossiper.headBlock
 	hasNext := blockStruct != nil
@@ -505,9 +501,9 @@ func (gossiper *Gossiper) printBlockChain()  {
 		blockHash := block.Hash()
 		s += hex.EncodeToString(blockHash[:])
 		for _, transaction := range block.Transactions {
-			if transaction.IsKeyPublish(){
+			if transaction.IsKeyPublish() {
 				s += ":" + transaction.GetName()
-			}else {
+			} else {
 				s += "|" + transaction.Secret.Origin
 			}
 		}
@@ -515,5 +511,7 @@ func (gossiper *Gossiper) printBlockChain()  {
 		blockStruct, hasNext = gossiper.blocksMap[hex.EncodeToString(block.PrevHash[:])]
 
 	}
-	fmt.Println(s)
+	if false {
+		fmt.Println(s)
+	}
 }

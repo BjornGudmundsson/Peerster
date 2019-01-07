@@ -20,8 +20,6 @@ func NewReplyHandler() *ReplyHandler {
 //PassToProcess take a ChunkStoreReply and passes it to the
 //corresponding process.
 func (rh *ReplyHandler) PassToProcess(csr *ChunkStoreReply) {
-	rh.mux.Lock()
-	defer rh.mux.Unlock()
 	identifier := csr.Src + "-" + csr.Hash
 	process, ok := rh.processes[identifier]
 	if !ok {
