@@ -24,7 +24,7 @@ func (g *Gossiper) RumourChatting(rtTimer int) {
 	p := data.GetRandomStringFromSlice(peers)
 	g.SendRumourMessage(startingRumour, p)
 	for {
-		time.Sleep(time.Duration(int64(rtTimer)) * time.Second)
+		time.Sleep(time.Duration(rtTimer) * time.Second)
 		//sendToEveryone
 		counter = g.Counter.IncrementAndReturn()
 		rm := &data.RumourMessage{

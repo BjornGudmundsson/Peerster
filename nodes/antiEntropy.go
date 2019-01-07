@@ -31,7 +31,7 @@ func (ep *EntropyPeer) ResetEntropyPeer() {
 	ep.mux.Unlock()
 }
 
-const antiEntropy time.Duration = 1
+const antiEntropy time.Duration = 1 * time.Second
 
 //AntiEntropy is an infinite loop that sends
 //StatusPackets to a random peer at a pre-determined
@@ -39,7 +39,7 @@ const antiEntropy time.Duration = 1
 //of sending that StatusPacket
 func (g *Gossiper) AntiEntropy() {
 	for {
-		time.Sleep(antiEntropy * time.Second)
+		time.Sleep(antiEntropy)
 		sp := g.RumourHolder.CreateStatusPacket()
 		peers := g.Neighbours.GetAllNeighboursWithException("")
 		randPeer := data.GetRandomStringFromSlice(peers)
