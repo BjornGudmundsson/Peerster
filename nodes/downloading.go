@@ -30,7 +30,7 @@ func (g *Gossiper) DownloadingFile(filename string) {
 	var gotMetaFile bool
 	lkd := g.ChunkToPeer.GetRandomOwnerOfMetafile(metafileHash)
 	if lkd == g.Name {
-		metafile, e := hex.DecodeString(g.Chunks[metafileHash])
+		//metafile, e := hex.DecodeString(g.Chunks[metafileHash])
 	}
 	var nxtChunk []byte
 	if metadata.MetaFile == nil && lkd != g.Name {
@@ -40,7 +40,7 @@ func (g *Gossiper) DownloadingFile(filename string) {
 		g.HandlerDataReplies.AddChunk(mfh, chunkChannel)
 		g.SendDataRequest(lastKnownDestination, nxtChunk)
 	} else {
-		mfile := hex.En
+		//mfile := hex.En
 		isFullyDownloaded, nxtIndex := g.HasAllChunksOfFile(metadata.MetaFile)
 		if isFullyDownloaded {
 			g.ReconstructFile(filename, metadata.MetaFile)

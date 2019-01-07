@@ -21,7 +21,7 @@ type PrivateKey struct {
 //contains the public key
 //of a private key
 type PublicKey struct {
-	e int
+	E int
 	N []byte
 }
 
@@ -29,7 +29,7 @@ type PublicKey struct {
 func (pk PublicKey) GetKey() rsa.PublicKey {
 	N := big.NewInt(0).SetBytes(pk.N)
 	pub := rsa.PublicKey{
-		E: pk.e,
+		E: pk.E,
 		N: N,
 	}
 	return pub
@@ -39,7 +39,7 @@ func (pk PublicKey) GetKey() rsa.PublicKey {
 func NewPublicPair(key rsa.PublicKey, name string) *PublicPair {
 	bs := key.N.Bytes()
 	pub := PublicKey{
-		e: key.E,
+		E: key.E,
 		N: bs,
 	}
 	pair := &PublicPair{
@@ -75,7 +75,7 @@ func getPrivateKey() *rsa.PrivateKey {
 func (priv *PrivateKey) GetPublicKey() PublicKey {
 	pub := priv.privateKey.PublicKey
 	return PublicKey{
-		e: pub.E,
+		E: pub.E,
 		N: pub.N.Bytes(),
 	}
 }
@@ -100,7 +100,7 @@ func (pk *PublicKey) Encrypt(msg []byte) ([]byte, error) {
 
 //Marshall marshalls the public key to a byte array
 func (pk PublicKey) Marshall() []byte {
-	e := pk.e
+	e := pk.E
 	E := big.NewInt(int64(e))
 	N := pk.N
 	return append(E.Bytes(), N...)
