@@ -5,16 +5,18 @@ form.addEventListener('submit', function(ev) {
 
     var oOutput = document.querySelector("div"),
     oData = new FormData(form);
-    console.log("Bjorn");
+    console.log("Handling upload file");
 
     var oReq = new XMLHttpRequest();
     oReq.open("POST", "/AddFile", true);
     oReq.onload = function(oEvent) {
         if (oReq.status == 200) {
             oOutput.innerHTML = "Uploaded!";
-        } 
-        else {
-            oOutput.innerHTML = "Error " + oReq.status + " occurred when trying to upload your file.<br \/>";
+            console.log("Uploaded!");
+        } else {
+            var message = "Error " + oReq.status + " occurred when trying to upload your file.<br \/>";
+            oOutput.innerHTML = message;
+            console.log(message);
         }
     };
 
