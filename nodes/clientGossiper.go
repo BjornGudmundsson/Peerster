@@ -396,7 +396,6 @@ func (g *Gossiper) DownloadSecretFile(wr http.ResponseWriter, req *http.Request)
 	if _, ok := g.Files[fn]; !ok {
 		log.Fatal(errors.New("This file has not been indexed"))
 	}
-	fmt.Println("Metadata: ", g.Files[fn])
 	go g.DownloadingFile(fn)
 	http.Redirect(wr, req, req.URL.Host, http.StatusSeeOther)
 }
