@@ -4,10 +4,9 @@ import (
 	"crypto/rsa"
 	"encoding/hex"
 	"fmt"
+	"github.com/BjornGudmundsson/Peerster/data/peersterCrypto"
 	"math/rand"
 	"time"
-
-	"github.com/BjornGudmundsson/Peerster/data/peersterCrypto"
 
 	"github.com/BjornGudmundsson/Peerster/data"
 )
@@ -111,13 +110,17 @@ func (gossiper *Gossiper) existsTransactionFromBlock(tx *data.KeyTransaction, ha
 
 func (gossiper *Gossiper) checkInsidePendingTransactions(tx *data.KeyTransaction) bool {
 	found := false
+	//fmt.Println("locking checkInsidePendingTransactions")
 	gossiper.blockChainMutex.Lock()
-	defer gossiper.blockChainMutex.Unlock()
+	//fmt.Println("locked checkInsidePendingTransactions")
 	for i := 0; i < len(gossiper.pendingTransactions) && !found; i++ {
 		pendingTransaction := gossiper.pendingTransactions[i]
 		found = tx.Compare(pendingTransaction)
 		fmt.Println("Found: ", found)
 	}
+	//fmt.Println("unlocking checkInsidePendingTransactions")
+	gossiper.blockChainMutex.Unlock()
+	//fmt.Println("unlocked checkInsidePendingTransactions")
 
 	return !found
 }
@@ -130,9 +133,14 @@ func (gossiper *Gossiper) PublishPublicKey(name string, key rsa.PublicKey) bool 
 	if gossiper.GetPublicKey(name) == nil && gossiper.checkInsidePendingTransactions(newTransaction) {
 		fmt.Println("Bjorn")
 		// add the transaction to the pending transactions
+
+		//fmt.Println("locking PublishPublicKey")
 		gossiper.blockChainMutex.Lock()
+		//fmt.Println("locked PublishPublicKey")
 		gossiper.pendingTransactions = append(gossiper.pendingTransactions, newTransaction)
+		//fmt.Println("unlocking PublishPublicKey")
 		gossiper.blockChainMutex.Unlock()
+		//fmt.Println("unlocked PublishPublicKey")
 
 		// send the transaction to neighbors
 		keyPublish := &data.KeyPublish{Transaction: newTransaction, HopLimit: hoplimit}
@@ -169,9 +177,13 @@ func (gossiper *Gossiper) HandleBlockRequest(request *data.BlockRequest) {
 		blockHashString := hex.EncodeToString(blockHashBytes[:])
 
 		// block to be send
+		//fmt.Println("locking HandleBlockRequest")
 		gossiper.blockChainMutex.Lock()
+		//fmt.Println("locked HandleBlockRequest")
 		block, found := gossiper.blocksMap[blockHashString]
+		//fmt.Println("unlocking HandleBlockRequest")
 		gossiper.blockChainMutex.Unlock()
+		//fmt.Println("unlocked HandleBlockRequest")
 
 		if found {
 			publish := &data.KeyBlockPublish{ Origin: gossiper.Name, HopLimit: hoplimit, Block: block.Block}
@@ -195,11 +207,14 @@ func (gossiper *Gossiper) HandleBlockRequest(request *data.BlockRequest) {
 }
 
 func (gossiper *Gossiper) HandleKeyTransaction(publish *data.KeyPublish)  {
+	fmt.Println("New transaction")
 	transaction := publish.Transaction
 	// Check it is not published in the main chain
 	valid := gossiper.GetPublicKey(transaction.GetName()) == nil
 
+	//fmt.Println("locking HandleKeyTransaction")
 	gossiper.blockChainMutex.Lock()
+	//fmt.Println("locked HandleKeyTransaction")
 	// Check it is not in the pending transactions
 	for _, pending := range gossiper.pendingTransactions{
 		valid = valid && transaction.GetName() != pending.GetName()
@@ -209,17 +224,22 @@ func (gossiper *Gossiper) HandleKeyTransaction(publish *data.KeyPublish)  {
 		// Add it
 		gossiper.pendingTransactions = append(gossiper.pendingTransactions, transaction)
 	}
+	//fmt.Println("unlocking HandleKeyTransaction")
 	gossiper.blockChainMutex.Unlock()
+	//fmt.Println("unlocked HandleKeyTransaction")
+
 
 
 }
 
 func (gossiper *Gossiper) HandleNewBlock(blockPublish *data.KeyBlockPublish) {
+	fmt.Println("New Block")
 	newBlock := blockPublish.Block
 	// check the prove of work
 	newBlockHash := newBlock.Hash()
 	if newBlockHash[0] == 0 && newBlockHash[1] == 0 {
 
+		fmt.Println("proof of work correct")
 		// if the prev block is the origin block, we must accept the new block.
 		allZeros := true
 		for _, b := range newBlock.PrevHash {
@@ -227,6 +247,7 @@ func (gossiper *Gossiper) HandleNewBlock(blockPublish *data.KeyBlockPublish) {
 		}
 
 		if allZeros {
+			fmt.Println("first block")
 			valid := true
 			// check for duplications in the block
 			for i, transaction := range newBlock.Transactions {
@@ -238,89 +259,106 @@ func (gossiper *Gossiper) HandleNewBlock(blockPublish *data.KeyBlockPublish) {
 			}
 
 			if valid {
+				//fmt.Println("locking HandleNewBlock")
 				gossiper.blockChainMutex.Lock()
+				//fmt.Println("locked HandleNewBlock")
 				newBlockStruct := &pairBlockLen{Block: newBlock, len: 1}
 				// add to the chain
+				fmt.Println("ADDING BLOCK", hex.EncodeToString(newBlockHash[:]))
 				gossiper.blocksMap[hex.EncodeToString(newBlockHash[:])] = newBlockStruct
+				//fmt.Println("unlocking HandleNewBlock")
+				gossiper.blockChainMutex.Unlock()
+				//fmt.Println("unlocked HandleNewBlock")
+
+				// broadcast the block
+				blockPublish.HopLimit -= 1
+				if blockPublish.HopLimit > 0 {
+					packet := &data.GossipPacket{KeyBlockPublish: blockPublish}
+					gossiper.BroadCastPacket(packet)
+				}
+
+			}
+
+
+		}else {
+			//fmt.Println("locking HandleNewBlock")
+			gossiper.blockChainMutex.Lock()
+			//fmt.Println("locked HandleNewBlock")
+
+			prevBlockStruct, haveIt := gossiper.blocksMap[hex.EncodeToString(newBlock.PrevHash[:])]
+			gossiper.blockChainMutex.Unlock()
+
+			// if i don't have the prev block, ask for it.
+			if !haveIt {
+				gossiper.RequestBlock(newBlock.PrevHash, blockPublish.Origin)
+			}
+
+			askedTime := time.Now()
+			// wait until i have the prev block (max 5 seg)
+			for !haveIt && time.Now().Sub(askedTime) < 5*time.Second {
+				time.Sleep(10 * time.Millisecond)
+				gossiper.blockChainMutex.Lock()
+				prevBlockStruct, haveIt = gossiper.blocksMap[hex.EncodeToString(newBlock.PrevHash[:])]
 				gossiper.blockChainMutex.Unlock()
 
-				// broadcast the block
-				blockPublish.HopLimit -= 1
-				if blockPublish.HopLimit > 0 {
-					packet := &data.GossipPacket{KeyBlockPublish: blockPublish}
-					gossiper.BroadCastPacket(packet)
+			}
+
+			// if i haven't received it, do not accept the new block
+			if haveIt {
+				prevHashString := hex.EncodeToString(prevBlockStruct.Block.PrevHash[:])
+				valid := true
+				// check validity of all the transactions of the block (in the chain and no repeated)
+
+				// check for duplications in the chain
+				for _, transaction := range newBlock.Transactions {
+					valid = valid && !gossiper.existsTransactionFromBlock(&transaction, prevHashString)
 				}
 
-			}
-
-		}
-
-		gossiper.blockChainMutex.Lock()
-
-		prevBlockStruct, haveIt := gossiper.blocksMap[hex.EncodeToString(newBlock.PrevHash[:])]
-		// if i don't have the prev block, ask for it.
-		if !haveIt {
-			gossiper.RequestBlock(newBlock.PrevHash, blockPublish.Origin)
-		}
-
-		askedTime := time.Now()
-		// wait until i have the prev block (max 5 seg)
-		for !haveIt && time.Now().Sub(askedTime) < 5*time.Second {
-			time.Sleep(10 * time.Millisecond)
-			prevBlockStruct, haveIt = gossiper.blocksMap[hex.EncodeToString(newBlock.PrevHash[:])]
-
-		}
-
-		// if i haven't received it, do not accept the new block
-		if haveIt {
-			prevHashString := hex.EncodeToString(prevBlockStruct.Block.PrevHash[:])
-			valid := true
-			// check validity of all the transactions of the block (in the chain and no repeated)
-
-			// check for duplications in the chain
-			for _, transaction := range newBlock.Transactions {
-				valid = valid && !gossiper.existsTransactionFromBlock(&transaction, prevHashString)
-			}
-
-			// check for duplications in the block
-			for i, transaction := range newBlock.Transactions {
-				for j := i + 1; j < len(newBlock.Transactions); j++ {
-					pointerTx := &transaction
-					otherTransaction := &newBlock.Transactions[j]
-					valid = valid && !pointerTx.Compare(otherTransaction)
-				}
-			}
-
-			if valid {
-				// count new length (prev + 1)
-				newBlockStruct := &pairBlockLen{Block: newBlock, len: prevBlockStruct.len + 1}
-
-				// add to the chain
-				gossiper.blocksMap[hex.EncodeToString(newBlockHash[:])] = newBlockStruct
-
-				if gossiper.headBlock.len < newBlockStruct.len {
-					// change head
-					gossiper.headBlock = newBlockStruct
-
-					// as head has been changed, we may need to delete some transactions
-					newTransactions := make([]*data.KeyTransaction, 0)
-					for _, transaction := range gossiper.pendingTransactions {
-						if gossiper.GetPublicKey(transaction.GetName()) == nil {
-							newTransactions = append(newTransactions, transaction)
-						}
+				// check for duplications in the block
+				for i, transaction := range newBlock.Transactions {
+					for j := i + 1; j < len(newBlock.Transactions); j++ {
+						pointerTx := &transaction
+						otherTransaction := &newBlock.Transactions[j]
+						valid = valid && !pointerTx.Compare(otherTransaction)
 					}
-					gossiper.pendingTransactions = newTransactions
 				}
 
-				// broadcast the block
-				blockPublish.HopLimit -= 1
-				if blockPublish.HopLimit > 0 {
-					packet := &data.GossipPacket{KeyBlockPublish: blockPublish}
-					gossiper.BroadCastPacket(packet)
+				if valid {
+					// count new length (prev + 1)
+					newBlockStruct := &pairBlockLen{Block: newBlock, len: prevBlockStruct.len + 1}
+
+					// add to the chain
+					fmt.Println("ADDING BLOCK", hex.EncodeToString(newBlockHash[:]))
+					gossiper.blocksMap[hex.EncodeToString(newBlockHash[:])] = newBlockStruct
+
+					if gossiper.headBlock.len < newBlockStruct.len {
+						// change head
+						gossiper.headBlock = newBlockStruct
+
+						// as head has been changed, we may need to delete some transactions
+						newTransactions := make([]*data.KeyTransaction, 0)
+						for _, transaction := range gossiper.pendingTransactions {
+							if gossiper.GetPublicKey(transaction.GetName()) == nil {
+								newTransactions = append(newTransactions, transaction)
+							}
+						}
+						gossiper.pendingTransactions = newTransactions
+					}
+
+					// broadcast the block
+					blockPublish.HopLimit -= 1
+					if blockPublish.HopLimit > 0 {
+						packet := &data.GossipPacket{KeyBlockPublish: blockPublish}
+						gossiper.BroadCastPacket(packet)
+					}
 				}
 			}
+			//fmt.Println("unlocking HandleNewBlock")
+			gossiper.blockChainMutex.Unlock()
+			//fmt.Println("unlocked HandleNewBlock")
 		}
-		gossiper.blockChainMutex.Unlock()
+
+
 	}
 }
 
@@ -348,9 +386,9 @@ func (gossiper *Gossiper) BroadCastPacket(packet *data.GossipPacket) {
 func (gossiper *Gossiper) KeyMiningThread() {
 
 	for true {
-		fmt.Println("blocking")
+		//fmt.Println("locking KeyMiningThread")
 		gossiper.blockChainMutex.Lock()
-		fmt.Println("blocked")
+		//fmt.Println("locked KeyMiningThread")
 		headHash := [32]byte{}
 
 		thereWasChain := gossiper.headBlock != nil
@@ -361,9 +399,10 @@ func (gossiper *Gossiper) KeyMiningThread() {
 
 		// Save in listToPublish all pending transactions to create a new Block
 		listToPublish := make([]data.KeyTransaction, len(gossiper.pendingTransactions))
+		/*
 		if len(listToPublish) == 0 {
 			continue
-		}
+		}*/
 		for i, pointer := range gossiper.pendingTransactions {
 			listToPublish[i] = *pointer
 		}
@@ -392,6 +431,7 @@ func (gossiper *Gossiper) KeyMiningThread() {
 			}
 
 			// add to the chain
+			fmt.Println("ADDING BLOCK", hex.EncodeToString(newHash[:]))
 			gossiper.blocksMap[hex.EncodeToString(newHash[:])] = newBlockStruct
 
 			// change head
@@ -409,6 +449,9 @@ func (gossiper *Gossiper) KeyMiningThread() {
 			gossiper.BroadCastPacket(packet)
 			fmt.Println("published")
 		}
+		//fmt.Println("unlocking KeyMiningThread")
 		gossiper.blockChainMutex.Unlock()
+		//fmt.Println("unlocked KeyMiningThread")
+
 	}
 }
