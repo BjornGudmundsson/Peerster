@@ -26,7 +26,6 @@ type Gossiper struct {
 	Counter               *data.Counter
 	Status                *Status
 	Mongering             MongererMessages
-	enPeer                *EntropyPeer
 	UIPort                int
 	RoutingTable          *data.RoutingTable
 	PrivateMessageStorage *data.PrivateMessageStorage
@@ -49,8 +48,11 @@ type Gossiper struct {
 	headBlock             *pairBlockLen
 	pendingTransactions   []*data.KeyTransaction
 	blocksMap             map[string]*pairBlockLen
+<<<<<<< HEAD
 	PrivateKey            *peersterCrypto.PrivateKey
 	PublicKey             peersterCrypto.PublicKey
+=======
+>>>>>>> a2590003b221452f8439226074c48aefb804bd08
 }
 
 //NewGossiper is a function that returns a pointer
@@ -112,7 +114,6 @@ func NewGossiper(address, name string, neighbours []string, p int) *Gossiper {
 		Counter:               counter,
 		Status:                status,
 		Mongering:             mong,
-		enPeer:                &EntropyPeer{},
 		UIPort:                p,
 		RoutingTable:          routingTable,
 		PrivateMessageStorage: &privStorage,

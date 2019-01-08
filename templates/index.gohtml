@@ -12,21 +12,27 @@
     <body>
       <h1> Hello, {{.Name}} </h1>
 
-      <form method="post" action="/AddMessage" id="messageForm">
-        <input name="text" id="text" type="text">
+      <h2>Upload a file</h2>
+      <form enctype="multipart/form-data" id="fileInfo" name="fileInfo" method="post">
+        <input id="file" name="file" type="file" required />
+        <Button type="submit"> Upload file </button>
+      </form>
+<<<<<<< HEAD
+=======
+
+      <h2>Request a file</h2>
+      <form method="post" action="/RequestFile" id="fileRequestForm">
+        <input name="destination" id="destination" type="text" placeholder="Node ID">
         <br>
-        <Button type="submit" > Send message </button>
+        <input name="fileName" id="fileName" type="text" placeholder="file name">
+        <br>
+        <input name="metafile" id="metafile" type="text" placeholder="metafilehash">
+        <Button type="submit" > Request file </button>
       </form>
 
-      <Button id="messageButton"> Get messages </Button>
-      <div id="container">
-      <br>  
-      </div>
-      <a href="/GetRoutingTable">Send private messages to contacts</a>
-      <form enctype="multipart/form-data" id="fileInfo" name="fileInfo" method="post">
-        <input id="file" name="file" type="file" required/>
-        <Button type="submit" > Send file </button>
-      </form>
+      <h2>Other stuff</h2>
+      <a href="/GetFoundFiles">See the files you have found from the search</a>
+>>>>>>> a2590003b221452f8439226074c48aefb804bd08
       <br>
       <br>
       <form method="post" action="/DownloadMetaFile" id="DownloadMetaFileForm">
@@ -36,6 +42,7 @@
         <Button type="submit" > DownloadMetaFile </button>
       </form>
       <br>
+<<<<<<< HEAD
       <br>
 
       <form method="post" action="/ShareSecretWithPeer" id="ShareSecretWithPeerForm">
@@ -46,6 +53,21 @@
       </form>
 
       <br>
+=======
+
+      <form method="post" action="/AddMessage" id="messageForm">
+        <input name="text" id="text" type="text">
+        <br>
+        <Button type="submit" > Send message </button>
+      </form>
+
+      <Button id="messageButton"> Get messages </Button>
+      <div id="container">
+      <br>
+      </div>
+      <a href="/GetRoutingTable">Send private messages to contacts</a>
+
+>>>>>>> a2590003b221452f8439226074c48aefb804bd08
       <script src="/GetIndexJS"></script>
     </body>
   </html>

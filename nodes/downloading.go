@@ -52,7 +52,7 @@ func (g *Gossiper) DownloadingFile(filename string) {
 		lastKnownDestination = g.ChunkToPeer.GetRandomOwnerOfChunk(metafileHash, (nxtIndex/32)+1)
 		g.HandlerDataReplies.AddMetafile(metafile, chunkChannel)
 		g.SendDataRequest(lastKnownDestination, nxtChunk)
-		g.Chunks[metadata.HashOfMetaFile] = hex.EncodeToString(metadata.MetaFile)
+		g.Chunks[metadata.HashOfMetaFile] = string(metadata.MetaFile)
 		fmt.Println("Populating")
 		g.PopulateFromMetafile(metadata.MetaFile, filename, metafileHash)
 	}
