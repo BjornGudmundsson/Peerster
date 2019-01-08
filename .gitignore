@@ -8,10 +8,9 @@
 *.pdf
 *.toc
 
-<<<<<<< HEAD
-.idea/*
-=======
 # Our two executables
 /Peerster
 /client/client
->>>>>>> a2590003b221452f8439226074c48aefb804bd08
+
+# IDEs
+.idea/*

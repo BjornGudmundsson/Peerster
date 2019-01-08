@@ -48,11 +48,8 @@ type Gossiper struct {
 	headBlock             *pairBlockLen
 	pendingTransactions   []*data.KeyTransaction
 	blocksMap             map[string]*pairBlockLen
-<<<<<<< HEAD
 	PrivateKey            *peersterCrypto.PrivateKey
 	PublicKey             peersterCrypto.PublicKey
-=======
->>>>>>> a2590003b221452f8439226074c48aefb804bd08
 }
 
 //NewGossiper is a function that returns a pointer

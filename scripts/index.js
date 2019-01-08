@@ -71,8 +71,6 @@ $('#DownloadMetaFileForm').submit(function(e){
         }
     });
 });
-<<<<<<< HEAD
-
 
 $('#ShareSecretWithPeerForm').submit(function(e){
     e.preventDefault();
@@ -85,5 +83,3 @@ $('#ShareSecretWithPeerForm').submit(function(e){
         }
     });
 });
-=======
->>>>>>> a2590003b221452f8439226074c48aefb804bd08
