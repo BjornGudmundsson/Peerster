@@ -412,5 +412,5 @@ func (g *Gossiper) DownloadFileFromNetwork(wr http.ResponseWriter, req *http.Req
 	}
 	fmt.Println("tcp call again")
 	go g.DownloadingFile(fn)
-	fmt.Fprintf(wr, "%v", "Bjorn")
+	fmt.Fprintf(wr, "%v", "Download successful")
 }
