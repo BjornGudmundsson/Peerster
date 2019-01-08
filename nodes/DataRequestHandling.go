@@ -13,12 +13,12 @@ const waitForChunk int = 8 * 1024
 
 func (g *Gossiper) handleDataRequestMessage(msg GossipAddress) {
 	//refactor this function at a good opportunity. This is too long
-	fmt.Println("Got a data request: hello")
 	gp := data.GossipPacket{}
 	req := msg.Msg.DataRequest
 	g.RoutingTable.UpdateRoutingTable(req.Origin, msg.Addr)
 	hash := req.HashValue
 	hexHash := hex.EncodeToString(hash)
+	fmt.Printf("Got a data request: %s\n", hexHash)
 	/*metafile, ok := g.Files[hexHash]
 	if ok {
 		//Send the metafile

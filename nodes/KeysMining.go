@@ -79,7 +79,7 @@ func (g *Gossiper) HasTransaction(tx *data.KeyTransaction) bool {
 }
 
 /**
-Checks whether if a key associated to a name exists starting from a specific head of the chain
+Checks whether a key associated to a name exists starting from a specific head of the chain
 requires to have the mutex lock
 */
 func (gossiper *Gossiper) existsTransactionFromBlock(tx *data.KeyTransaction, hash string) bool {
@@ -90,8 +90,7 @@ func (gossiper *Gossiper) existsTransactionFromBlock(tx *data.KeyTransaction, ha
 	}
 
 	found := false
-	blockStruct, _ := gossiper.blocksMap[hash]
-	hasNext := true
+	blockStruct, hasNext := gossiper.blocksMap[hash]
 
 	for !found && hasNext {
 		block := blockStruct.Block

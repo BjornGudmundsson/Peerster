@@ -12,6 +12,8 @@
     <body>
       <h1>Hello, {{.Name}}</h1>
 
+      Number of chunks stored here: {{.NumChunks}}
+
       <h2>Upload a file</h2>
       <form enctype="multipart/form-data" id="fileInfo" name="fileInfo" method="post">
         <input id="file" name="file" type="file" required />

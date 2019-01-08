@@ -129,14 +129,16 @@ func (g *Gossiper) ServeHTTP(wr http.ResponseWriter, req *http.Request) {
 var tpl *template.Template
 
 type tplVars struct {
-	Name     string
-	Messages []data.RumourMessage
+	Name      string
+	NumChunks int
+	Messages  []data.RumourMessage
 }
 
 //GetIndexPage sends an html page back as a response with the gossiper information
 func (g *Gossiper) GetIndexPage(wr http.ResponseWriter, req *http.Request) {
 	tv := tplVars{
-		Name: g.Name,
+		Name:      g.Name,
+		NumChunks: len(g.Chunks),
 	}
 	tpl.ExecuteTemplate(wr, "index.gohtml", tv)
 }
