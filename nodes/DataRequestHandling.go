@@ -2,6 +2,7 @@ package nodes
 
 import (
 	"encoding/hex"
+	"fmt"
 
 	"github.com/BjornGudmundsson/Peerster/data"
 )
@@ -12,6 +13,7 @@ const waitForChunk int = 8 * 1024
 
 func (g *Gossiper) handleDataRequestMessage(msg GossipAddress) {
 	//refactor this function at a good opportunity. This is too long
+	fmt.Println("Got a data request: hello")
 	gp := data.GossipPacket{}
 	req := msg.Msg.DataRequest
 	g.RoutingTable.UpdateRoutingTable(req.Origin, msg.Addr)
@@ -43,6 +45,7 @@ func (g *Gossiper) handleDataRequestMessage(msg GossipAddress) {
 		return
 	}*/
 	txt, ok := g.Chunks[hexHash]
+	fmt.Println("Had chunk? ", ok)
 	if ok {
 		dr := data.DataReply{}
 		hashBytes, e := hex.DecodeString(hexHash)

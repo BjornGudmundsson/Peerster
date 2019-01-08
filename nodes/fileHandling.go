@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"crypto/sha256"
 	"encoding/hex"
+	"fmt"
 	"log"
 	"math"
 	"mime/multipart"
@@ -59,12 +60,9 @@ func (g *Gossiper) HandleNewFile(fh *multipart.FileHeader, f multipart.File) {
 	}
 	go g.SpreadMetaFile(metafile)
 	hashMF := sha256.Sum256(metafile)
-	hashMFBs := make([]byte, 0)
-	for _, b := range hashMF {
-		hashMFBs = append(hashMFBs, b)
-	}
-	hexHash := hex.EncodeToString(hashMFBs)
-	g.Chunks[hexHash] = hex.EncodeToString(metafile)
+	fmt.Println("hashMF: ", hex.EncodeToString(hashMF[:]))
+	hexHash := hex.EncodeToString(hashMF[:])
+	g.Chunks[hexHash] = string(metafile)
 	mf := &data.MetaData{
 		FileName:       fh.Filename,
 		FileSize:       fSize,

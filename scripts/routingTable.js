@@ -10,3 +10,16 @@ $('#messageForm').submit(function(e){
         }
     });
 });
+
+$('#DownloadFileNetworkForm').submit(function(e){
+    e.preventDefault();
+    $.ajax({
+        url:"/DownloadFileFromNetwork",
+        type:'post',
+        data:$('#DownloadFileNetworkForm').serialize(),
+        success:function(data){
+            //whatever you wanna do after the form is successfully submitted
+            console.log(data);
+        }
+    });
+});

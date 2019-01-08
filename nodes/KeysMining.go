@@ -154,7 +154,7 @@ func (gossiper *Gossiper) PublishPublicKey(name string, key rsa.PublicKey) bool 
 
 func (gossiper *Gossiper) HandleBlockReply(reply *data.BlockReply) {
 	if reply.Destination == gossiper.Name {
-		fmt.Println("i got a Block reply")
+		//fmt.Println("i got a Block reply")
 		// the reply is for me
 		gossiper.HandleNewBlock(reply.KeyBlockPublish)
 
@@ -172,7 +172,7 @@ func (gossiper *Gossiper) HandleBlockReply(reply *data.BlockReply) {
 
 func (gossiper *Gossiper) HandleBlockRequest(request *data.BlockRequest) {
 	if request.Destination == gossiper.Name {
-		fmt.Println("I got a block request")
+		//fmt.Println("I got a block request")
 		// the request is for me
 		blockHashBytes := request.HashValue
 		blockHashString := hex.EncodeToString(blockHashBytes[:])
@@ -194,11 +194,11 @@ func (gossiper *Gossiper) HandleBlockRequest(request *data.BlockRequest) {
 
 			gossiper.SendPacketViaRoutingTable(packet, request.Origin)
 
-			hashBlcok := block.Block.Hash()
-			fmt.Println("i sended the block with hash", hex.EncodeToString(hashBlcok[:]))
+			//hashBlcok := block.Block.Hash()
+			//fmt.Println("i sended the block with hash", hex.EncodeToString(hashBlcok[:]))
 
 			if len(block.Block.Transactions) > 0 {
-				fmt.Println(*block.Block.Transactions[0].KeyPublish)
+				//fmt.Println(*block.Block.Transactions[0].KeyPublish)
 				//fmt.Println(*block.Block.Transactions[0].Secret)
 			}
 

@@ -183,7 +183,6 @@ func (rh *RumourHolder) CheckIfNeedMessages(sp *StatusPacket) *StatusPacket {
 //this statuspacket
 func (rh *RumourHolder) CheckIfUpToDate(sp *StatusPacket) bool {
 	want := sp.Want
-	fmt.Println(want)
 	counterMap := make(map[string]uint32)
 	for _, ps := range want {
 		counterMap[ps.Identifier] = ps.NextID

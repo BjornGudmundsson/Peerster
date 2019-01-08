@@ -97,7 +97,7 @@ func (g *Gossiper) ServeHTTP(wr http.ResponseWriter, req *http.Request) {
 		return
 	}
 	if route == "/DownloadMetaFile" {
-		g.DownloadMetaFile(wr, req)
+		//g.DownloadMetaFile(wr, req)
 		return
 	}
 	if route == "/GetChord" {
@@ -118,6 +118,10 @@ func (g *Gossiper) ServeHTTP(wr http.ResponseWriter, req *http.Request) {
 	}
 	if route == "/DownloadSecretFile" {
 		g.DownloadSecretFile(wr, req)
+		return
+	}
+	if route == "/DownloadFileFromNetwork" {
+		g.DownloadFileFromNetwork(wr, req)
 		return
 	}
 }
@@ -306,7 +310,7 @@ func (g *Gossiper) GetChordTable(wr http.ResponseWriter, req *http.Request) {
 
 //DownloadMetaFile downloads the metafile with the corresponding file name from
 //an HTML form
-func (g *Gossiper) DownloadMetaFile(wr http.ResponseWriter, req *http.Request) {
+/*func (g *Gossiper) DownloadMetaFile(wr http.ResponseWriter, req *http.Request) {
 	metafile := req.FormValue("metafile")
 	metafiledata, e := hex.DecodeString(metafile)
 	if e != nil {
@@ -317,7 +321,7 @@ func (g *Gossiper) DownloadMetaFile(wr http.ResponseWriter, req *http.Request) {
 		log.Fatal(errors.New("Got an empty string from the form"))
 	}
 	g.PopulateFromMetafile(metafiledata, fn)
-}
+}*/
 
 //GetAllPublicKeys is a route that displays all the public key pairs that are
 //logged on the longest chain
@@ -365,10 +369,12 @@ func (g *Gossiper) GetSecrets(wr http.ResponseWriter, req *http.Request) {
 		p1, p2 := g.ChordTable.GetPlaceInChord(p)
 		if p1 != nil {
 			node := g.ChordTable.GetNodeAtPosition(p1)
+			fmt.Println("owner of metafile: ", node)
 			g.ChunkToPeer.AddOwnerForMetafileHash(node, mfh)
 		}
 		if p2 != nil {
 			node := g.ChordTable.GetNodeAtPosition(p2)
+			fmt.Println("owner of metafile: ", node)
 			g.ChunkToPeer.AddOwnerForMetafileHash(node, mfh)
 		}
 		fmt.Println("IV", secret.IV)
@@ -394,6 +400,15 @@ func (g *Gossiper) DownloadSecretFile(wr http.ResponseWriter, req *http.Request)
 	if _, ok := g.Files[fn]; !ok {
 		log.Fatal(errors.New("This file has not been indexed"))
 	}
+	tpl.ExecuteTemplate(wr, "download.gohtml", fn)
+}
+
+func (g *Gossiper) DownloadFileFromNetwork(wr http.ResponseWriter, req *http.Request) {
+	fn := req.FormValue("filename")
+	if fn == "" {
+		log.Fatal(errors.New("Got an empty filename"))
+	}
+	fmt.Println("tcp call again")
 	go g.DownloadingFile(fn)
-	http.Redirect(wr, req, req.URL.Host, http.StatusSeeOther)
+	fmt.Fprintf(wr, "%v", "Bjorn")
 }
