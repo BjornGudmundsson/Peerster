@@ -2,7 +2,6 @@ package blockchain_test
 
 import (
 	"encoding/hex"
-	"fmt"
 	"testing"
 
 	"github.com/BjornGudmundsson/Peerster/data/blockchain"
@@ -76,7 +75,6 @@ func Test_AddToEmptyChain(t *testing.T) {
 	require.Equal(t, hxHead, hxBlock5, "Making sure that the longest chain has been updated")
 	require.NotEqual(t, hxHead, hxBlock2)
 	oldTransActions := blockchain.GetTransactionsToCommonBlock(oldHead, commonBlock)
-	fmt.Println(oldTransActions)
 	require.Equal(t, len(oldTransActions), 1, "Testing the length of the oldTransactions")
 
 }

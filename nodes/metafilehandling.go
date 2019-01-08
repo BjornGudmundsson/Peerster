@@ -1,31 +1,18 @@
 package nodes
 
 import (
-	"crypto/sha256"
 	"encoding/hex"
 	"errors"
 	"log"
 	"math/big"
 
 	"github.com/BjornGudmundsson/Peerster/data/hashtable"
-
-	"github.com/BjornGudmundsson/Peerster/data"
 )
 
 //PopulateFromMetafile takes in a metafile and the filename
 //and populates the chunk to peer mapping with the nodes from the chordx
-func (g *Gossiper) PopulateFromMetafile(mf []byte, fn string) {
+func (g *Gossiper) PopulateFromMetafile(mf []byte, fn, metafilehash string) {
 	n := len(mf)
-	hash := sha256.Sum256(mf)
-	metafilehash := hex.EncodeToString(hash[:])
-	md := data.MetaData{
-		HashOfMetaFile: metafilehash,
-		MetaFile:       mf,
-		FileName:       fn,
-		//Idk why I do this.
-		FileSize: 7,
-	}
-	g.Files[fn] = md
 	for i := 0; i < n; i = i + 32 {
 		j := i + 32
 		chunk := mf[i:j]
@@ -43,5 +30,5 @@ func (g *Gossiper) PopulateFromMetafile(mf []byte, fn string) {
 			}
 		}
 	}
-	g.DownloadingFile(fn)
+	//g.DownloadingFile(fn)
 }

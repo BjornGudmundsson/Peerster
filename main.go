@@ -27,6 +27,6 @@ func main() {
 	go g.TCPServer(*port + 1)
 	go g.RumourChatting(*rtTimer)
 	go g.AntiEntropy()
-	g.MiningThread()
-
+	g.SetPublicKey()
+	g.KeyMiningThread()
 }

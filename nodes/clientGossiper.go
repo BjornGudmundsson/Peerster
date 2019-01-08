@@ -9,6 +9,10 @@ import (
 	"net"
 	"net/http"
 
+	"github.com/BjornGudmundsson/Peerster/data/hashtable"
+
+	"github.com/BjornGudmundsson/Peerster/data/peersterCrypto"
+
 	"github.com/BjornGudmundsson/Peerster/data"
 	"github.com/dedis/protobuf"
 )
@@ -93,11 +97,31 @@ func (g *Gossiper) ServeHTTP(wr http.ResponseWriter, req *http.Request) {
 		return
 	}
 	if route == "/DownloadMetaFile" {
-		g.DownloadMetaFile(wr, req)
+		//g.DownloadMetaFile(wr, req)
 		return
 	}
 	if route == "/GetChord" {
 		g.GetChordTable(wr, req)
+		return
+	}
+	if route == "/GetAllPublicKeys" {
+		g.GetAllPublicKeys(wr, req)
+		return
+	}
+	if route == "/ShareSecretWithPeer" {
+		g.ShareSecretWithPeer(wr, req)
+		return
+	}
+	if route == "/GetSecrets" {
+		g.GetSecrets(wr, req)
+		return
+	}
+	if route == "/DownloadSecretFile" {
+		g.DownloadSecretFile(wr, req)
+		return
+	}
+	if route == "/DownloadFileFromNetwork" {
+		g.DownloadFileFromNetwork(wr, req)
 		return
 	}
 }
@@ -286,7 +310,7 @@ func (g *Gossiper) GetChordTable(wr http.ResponseWriter, req *http.Request) {
 
 //DownloadMetaFile downloads the metafile with the corresponding file name from
 //an HTML form
-func (g *Gossiper) DownloadMetaFile(wr http.ResponseWriter, req *http.Request) {
+/*func (g *Gossiper) DownloadMetaFile(wr http.ResponseWriter, req *http.Request) {
 	metafile := req.FormValue("metafile")
 	metafiledata, e := hex.DecodeString(metafile)
 	if e != nil {
@@ -297,4 +321,94 @@ func (g *Gossiper) DownloadMetaFile(wr http.ResponseWriter, req *http.Request) {
 		log.Fatal(errors.New("Got an empty string from the form"))
 	}
 	g.PopulateFromMetafile(metafiledata, fn)
+}*/
+
+//GetAllPublicKeys is a route that displays all the public key pairs that are
+//logged on the longest chain
+func (g *Gossiper) GetAllPublicKeys(wr http.ResponseWriter, req *http.Request) {
+	pairs := g.GetAllPublicKeyInLongestChain()
+	tpl.ExecuteTemplate(wr, "publicKeys.gohtml", pairs)
+}
+
+//ShareSecretWithPeer is a GUI route that shares a secret with a peer. The file has
+//to have been indexed before being shared or else nothing will happen.
+func (g *Gossiper) ShareSecretWithPeer(wr http.ResponseWriter, req *http.Request) {
+	fn := req.FormValue("filename")
+	peer := req.FormValue("peer")
+	if peer == "" {
+		peer = g.Name
+	}
+	g.ShareSecret(fn, peer)
+}
+
+//GetSecrets renders a template showing the names of the files
+//that have been shared with this peer.
+func (g *Gossiper) GetSecrets(wr http.ResponseWriter, req *http.Request) {
+	var name string
+	val := req.URL.Query()["name"][0]
+	if val == "" {
+		name = g.Name
+	} else {
+		name = val
+	}
+	fmt.Println("Val: ", val, name)
+	secrets := g.GetSecretsForPeer(name)
+	verifiedSecrets := make([]peersterCrypto.Secret, 0)
+	priv := g.PrivateKey
+	for _, eSecret := range secrets {
+		secret, e := priv.DecryptSecret(&eSecret)
+		if e == nil {
+			verifiedSecrets = append(verifiedSecrets, *secret)
+		}
+	}
+
+	//Indexing the file metadata locally for the gossiper.
+	for _, secret := range verifiedSecrets {
+		mfh := hex.EncodeToString(secret.MetaFileHash)
+		p := hashtable.HashStringInt(mfh)
+		p1, p2 := g.ChordTable.GetPlaceInChord(p)
+		if p1 != nil {
+			node := g.ChordTable.GetNodeAtPosition(p1)
+			fmt.Println("owner of metafile: ", node)
+			g.ChunkToPeer.AddOwnerForMetafileHash(node, mfh)
+		}
+		if p2 != nil {
+			node := g.ChordTable.GetNodeAtPosition(p2)
+			fmt.Println("owner of metafile: ", node)
+			g.ChunkToPeer.AddOwnerForMetafileHash(node, mfh)
+		}
+		fmt.Println("IV", secret.IV)
+		md := data.MetaData{
+			FileName:       secret.FileName,
+			FileSize:       7,
+			IV:             secret.IV,
+			Key:            secret.Key,
+			MetaFile:       nil,
+			HashOfMetaFile: mfh,
+		}
+		g.Files[secret.FileName] = md
+	}
+	tpl.ExecuteTemplate(wr, "secrets.gohtml", verifiedSecrets)
+}
+
+func (g *Gossiper) DownloadSecretFile(wr http.ResponseWriter, req *http.Request) {
+	query := req.URL.Query()["filename"]
+	if len(query) == 0 {
+		log.Fatal(errors.New("Did not put in a query parameter"))
+	}
+	fn := query[0]
+	if _, ok := g.Files[fn]; !ok {
+		log.Fatal(errors.New("This file has not been indexed"))
+	}
+	tpl.ExecuteTemplate(wr, "download.gohtml", fn)
+}
+
+func (g *Gossiper) DownloadFileFromNetwork(wr http.ResponseWriter, req *http.Request) {
+	fn := req.FormValue("filename")
+	if fn == "" {
+		log.Fatal(errors.New("Got an empty filename"))
+	}
+	fmt.Println("tcp call again")
+	go g.DownloadingFile(fn)
+	fmt.Fprintf(wr, "%v", "Bjorn")
 }

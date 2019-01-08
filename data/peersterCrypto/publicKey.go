@@ -1,10 +1,12 @@
 package peersterCrypto
 
 import (
+	"bytes"
 	"crypto"
 	"crypto/rand"
 	"crypto/rsa"
 	"crypto/sha256"
+	"encoding/binary"
 	"math/big"
 )
 
@@ -21,7 +23,32 @@ type PrivateKey struct {
 //contains the public key
 //of a private key
 type PublicKey struct {
-	publicKey rsa.PublicKey
+	E int
+	N []byte
+}
+
+//GetKey returns the public key of the node
+func (pk PublicKey) GetKey() rsa.PublicKey {
+	N := big.NewInt(0).SetBytes(pk.N)
+	pub := rsa.PublicKey{
+		E: pk.E,
+		N: N,
+	}
+	return pub
+}
+
+//NewPublicPair returns a new public pair.
+func NewPublicPair(key rsa.PublicKey, name string) *PublicPair {
+	bs := key.N.Bytes()
+	pub := PublicKey{
+		E: key.E,
+		N: bs,
+	}
+	pair := &PublicPair{
+		PublicKey: pub,
+		Origin:    name,
+	}
+	return pair
 }
 
 //NewPrivateKey returns a new instance of
@@ -50,19 +77,20 @@ func getPrivateKey() *rsa.PrivateKey {
 func (priv *PrivateKey) GetPublicKey() PublicKey {
 	pub := priv.privateKey.PublicKey
 	return PublicKey{
-		publicKey: pub,
+		E: pub.E,
+		N: pub.N.Bytes(),
 	}
 }
 
 //Encrypt encrypts a message with the public key
 func (pk *PublicKey) Encrypt(msg []byte) ([]byte, error) {
-	pub := &pk.publicKey
+	pub := pk.GetKey()
 	hash := sha256.New()
 	label := []byte("")
 	ciphertext, err := rsa.EncryptOAEP(
 		hash,
 		rand.Reader,
-		pub,
+		&pub,
 		msg,
 		label,
 	)
@@ -74,10 +102,11 @@ func (pk *PublicKey) Encrypt(msg []byte) ([]byte, error) {
 
 //Marshall marshalls the public key to a byte array
 func (pk PublicKey) Marshall() []byte {
-	e := pk.publicKey.E
-	E := big.NewInt(int64(e))
-	N := pk.publicKey.N
-	return append(E.Bytes(), N.Bytes()...)
+	e := pk.E
+	buf := new(bytes.Buffer)
+	binary.Write(buf, binary.LittleEndian, e)
+	N := pk.N
+	return append(buf.Bytes(), N...)
 }
 
 //Signature takes in a message and creates a signature. Use the
@@ -107,8 +136,9 @@ func (pk PublicKey) VerifySignature(sign []byte, msg []byte) error {
 	pssh.Write(msg)
 	hashed := pssh.Sum(nil)
 	var opts rsa.PSSOptions
+	pub := pk.GetKey()
 	err := rsa.VerifyPSS(
-		&pk.publicKey,
+		&pub,
 		newhash,
 		hashed,
 		sign, &opts)
@@ -130,7 +160,7 @@ func (priv *PrivateKey) EncryptSecret(s *Secret, pk PublicKey) (*EncryptedSecret
 	if err != nil {
 		return nil, err
 	}
-	ecns := NewEncryptedSecret(encIV, encFN, encKey, sign, encMFH, myPk, s.Origin)
+	ecns := NewEncryptedSecret(encIV, encFN, encKey, sign, encMFH, myPk, s.Origin, s.Destination)
 	return ecns, nil
 }
 
@@ -150,7 +180,7 @@ func (priv *PrivateKey) DecryptSecret(es *EncryptedSecret) (*Secret, error) {
 	if verify != nil {
 		return nil, verify
 	}
-	secret := NewSecret(string(fn), src, pk, MFH, IV, key)
+	secret := NewSecret(string(fn), src, es.Destination, pk, MFH, IV, key)
 	return secret, nil
 }
 

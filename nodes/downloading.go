@@ -9,6 +9,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/BjornGudmundsson/Peerster/data/peersterCrypto"
+
 	"github.com/BjornGudmundsson/Peerster/data"
 )
 
@@ -18,76 +20,97 @@ import (
 //DownloadingFile thread it will assume that this is a file
 //you do not have.
 func (g *Gossiper) DownloadingFile(filename string) {
-	var meta []byte
 	var lastKnownDestination string
 	metadata := g.Files[filename]
 	metafile := metadata.MetaFile
 	metafileHash := metadata.HashOfMetaFile
 	//All chunks will go through this channel
 	chunkChannel := make(chan data.DataReply)
-	var gotMetaFile bool
+	pmf, has := g.Chunks[metafileHash]
+	if has {
+		v := []byte(pmf)
+		metadata.MetaFile = v
+		g.Files[filename] = metadata
+		g.PopulateFromMetafile(metadata.MetaFile, filename, metafileHash)
+	}
 	var nxtChunk []byte
 	if metadata.MetaFile == nil {
 		lastKnownDestination = g.ChunkToPeer.GetRandomOwnerOfMetafile(metafileHash)
+		fmt.Println("Last known destination: ", lastKnownDestination)
 		nxtChunk, _ = hex.DecodeString(metafileHash)
 		mfh := metafileHash
 		g.HandlerDataReplies.AddChunk(mfh, chunkChannel)
 		g.SendDataRequest(lastKnownDestination, nxtChunk)
 	} else {
+		fmt.Println("Had the metafile 2: ", hex.EncodeToString(metadata.MetaFile[0:32]))
 		isFullyDownloaded, nxtIndex := g.HasAllChunksOfFile(metadata.MetaFile)
 		if isFullyDownloaded {
 			g.ReconstructFile(filename, metadata.MetaFile)
 			return
 		}
-		nxtChunk = metafile[nxtIndex : nxtIndex+32]
+		nxtChunk = metadata.MetaFile[nxtIndex : nxtIndex+32]
 		lastKnownDestination = g.ChunkToPeer.GetRandomOwnerOfChunk(metafileHash, (nxtIndex/32)+1)
 		g.HandlerDataReplies.AddMetafile(metafile, chunkChannel)
 		g.SendDataRequest(lastKnownDestination, nxtChunk)
+		g.Chunks[metadata.HashOfMetaFile] = hex.EncodeToString(metadata.MetaFile)
+		fmt.Println("Populating")
+		g.PopulateFromMetafile(metadata.MetaFile, filename, metafileHash)
 	}
 	for {
-		ticker := time.NewTicker(5 * time.Second)
+		ticker := time.NewTicker(2 * time.Second)
 		select {
 		case datareply := <-chunkChannel:
 			hash := datareply.HashValue
 			hashHex := hex.EncodeToString(hash)
 			if hashHex == metafileHash {
-				fmt.Println("DOWNLOADING metafile")
-				mf := datareply.Data
+				fmt.Println("Got metafile 2222")
 				metadata.MetaFile = datareply.Data
+				fmt.Println("Metafilehash: ", metafileHash)
+				fmt.Println("reply hash: ", hex.EncodeToString(datareply.HashValue))
+				fmt.Println("MEtafile: ", string(datareply.Data[0:32]))
+				g.Chunks[metafileHash] = string(datareply.Data)
+				g.HandlerDataReplies.AddMetafile(metadata.MetaFile, chunkChannel)
 				g.Files[filename] = metadata
-				_, i := g.HasAllChunksOfFile(meta)
-				lastKnownDestination = g.ChunkToPeer.GetRandomOwnerOfChunk(metafileHash, (i/32)+1)
-				if g.Files[filename].MetaFile != nil {
-					nxtChunk = meta[i : i+32]
-					g.SendDataRequest(lastKnownDestination, nxtChunk)
-					continue
+				g.PopulateFromMetafile(metadata.MetaFile, filename, metafileHash)
+				_, i := g.HasAllChunksOfFile(metadata.MetaFile)
+				for {
+					lastKnownDestination = g.ChunkToPeer.GetRandomOwnerOfChunk(metafileHash, (i/32)+1)
+					if lastKnownDestination == g.Name {
+						i = i + 32
+						continue
+					}
+					break
 				}
-				if !gotMetaFile {
-					metadata.MetaFile = mf
-					g.Files[filename] = metadata
-					g.HandlerDataReplies.AddMetafile(mf, chunkChannel)
-					nxtChunk = mf[i : i+32]
-					g.SendDataRequest(lastKnownDestination, nxtChunk)
-					gotMetaFile = !gotMetaFile
-				}
+				fmt.Println(lastKnownDestination)
+				nxtChunk = metadata.MetaFile[i : i+32]
+				g.SendDataRequest(lastKnownDestination, nxtChunk)
 			} else {
+				fmt.Println("Getting a chunk")
 				md := g.Files[filename]
 				g.Chunks[hashHex] = string(datareply.Data)
-				fmt.Println("Got this data: ", string(datareply.Data))
 				done, index := g.HasAllChunksOfFile(md.MetaFile)
 				if done {
 					g.ReconstructFile(filename, md.MetaFile)
 					g.HandlerDataReplies.DeleteMetafile(md.MetaFile)
 					return
 				}
-				lastKnownDestination = g.ChunkToPeer.GetRandomOwnerOfChunk(metafileHash, (index/32)+1)
-				fmt.Println("DOWNLOADING chunk ", index/32)
+				for {
+					lastKnownDestination = g.ChunkToPeer.GetRandomOwnerOfChunk(metafileHash, (index/32)+1)
+					if lastKnownDestination == g.Name {
+						index = index + 32
+						continue
+					}
+					break
+				}
 				nxtChunk = md.MetaFile[index : index+32]
 				g.SendDataRequest(lastKnownDestination, nxtChunk)
 			}
 		case <-ticker.C:
 			//I'll keep persisting until I get a datarequest
 			//g.SendDataRequest(lastKnownDestination, nxtChunk)
+			//lastKnownDestination = g.ChunkToPeer.GetRandomOwnerOfChunk()
+			fmt.Println("Ticker expired")
+			fmt.Println(lastKnownDestination)
 			g.SendDataRequest(lastKnownDestination, nxtChunk)
 		}
 	}
@@ -96,8 +119,10 @@ func (g *Gossiper) DownloadingFile(filename string) {
 //ReconstructFile takes in the filename and metafile and reconstructs the
 //file from that and adds it to the downloaded function.
 func (g *Gossiper) ReconstructFile(filename string, metafile []byte) {
+	fmt.Println("Reconstructing file")
 	//This reconstructs the file. Don't feel like writing it right now.
 	n := len(metafile) / 32
+	fmt.Println("Length of the metafile: ", n)
 	dir, err := filepath.Abs(filepath.Dir(os.Args[0]))
 	if err != nil {
 		log.Fatal(err)
@@ -106,13 +131,26 @@ func (g *Gossiper) ReconstructFile(filename string, metafile []byte) {
 	fp := strings.Join(temp, "/")
 	f, e := os.Create(fp)
 	if e != nil {
+		fmt.Println("os create")
 		log.Fatal(e)
 	}
+	md := g.Files[filename]
+	fmt.Println("metadata reconstruction: ")
+	IV := md.IV
+	Key := md.Key
+	buffer := make([]byte, 0)
 	for i := 0; i < n; i++ {
 		j := i + 1
 		chunk := hex.EncodeToString(metafile[i*32 : j*32])
-		fmt.Println("Chunk databit: ", g.Chunks[chunk])
-		fmt.Fprintf(f, g.Chunks[chunk])
+		buffer = append(buffer, []byte(g.Chunks[chunk])...)
 	}
+	fmt.Println("created the buffer")
+	fmt.Println("multiple of blocksize", len(buffer)%keySize == 0, len(buffer))
+	decryptedFile, e := peersterCrypto.DecryptCiphertext(buffer, Key, IV)
+	if e != nil {
+		fmt.Println("Got an error")
+		log.Fatal(e)
+	}
+	fmt.Fprintf(f, string(decryptedFile))
 	fmt.Printf("Reconstructed file %v", filename)
 }

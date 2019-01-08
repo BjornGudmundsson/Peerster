@@ -48,6 +48,18 @@ func (g *Gossiper) delegateMessages(ch chan GossipAddress) {
 			if msg.Msg.ChunkStoreReply != nil {
 				go g.HandleChunkStoreReply(msg.Msg)
 			}
+			if msg.Msg.KeyPublish != nil {
+				go g.HandleKeyTransaction(msg.Msg.KeyPublish)
+			}
+			if msg.Msg.KeyBlockPublish != nil {
+				go g.HandleNewBlock(msg.Msg.KeyBlockPublish)
+			}
+			if msg.Msg.BlockRequest != nil {
+				go g.HandleBlockRequest(msg.Msg.BlockRequest)
+			}
+			if msg.Msg.BlockReply != nil{
+				go g.HandleBlockReply(msg.Msg.BlockReply)
+			}
 		}
 	}
 }

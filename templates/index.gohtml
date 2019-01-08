@@ -27,18 +27,6 @@
         <input id="file" name="file" type="file" required/>
         <Button type="submit" > Send file </button>
       </form>
-
-      <br>
-      <form method="post" action="/RequestFile" id="fileRequestForm">
-        <input name="destination" id="destination" type="text" placeholder="Node ID">
-        <br>
-        <input name="fileName" id="fileName" type="text" placeholder="file name">
-        <br>
-        <input name="metafile" id="metafile" type="text" placeholder="metafilehash">
-        <Button type="submit" > Send message </button>
-      </form>
-      <br>
-      <a href="/GetFoundFiles">See the files you have found from the search</a>
       <br>
       <br>
       <form method="post" action="/DownloadMetaFile" id="DownloadMetaFileForm">
@@ -47,6 +35,16 @@
         <input name="filename" id="filebame" type="text" placeholder="file name">
         <Button type="submit" > DownloadMetaFile </button>
       </form>
+      <br>
+      <br>
+
+      <form method="post" action="/ShareSecretWithPeer" id="ShareSecretWithPeerForm">
+          <input name="peer" id="peer" type="text" placeholder="Give the name of the peer to share file with">
+          <br>
+          <input name="filename" id="filename" type="text" placeholder="Give the name of the file to share">
+          <Button type="submit" > ShareFile </button>
+      </form>
+
       <br>
       <script src="/GetIndexJS"></script>
     </body>

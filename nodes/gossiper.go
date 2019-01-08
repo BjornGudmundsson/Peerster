@@ -6,6 +6,8 @@ import (
 	"net"
 	"sync"
 
+	"github.com/BjornGudmundsson/Peerster/data/peersterCrypto"
+
 	"github.com/BjornGudmundsson/Peerster/data"
 	"github.com/BjornGudmundsson/Peerster/data/blockchain"
 	"github.com/BjornGudmundsson/Peerster/data/hashtable"
@@ -46,7 +48,9 @@ type Gossiper struct {
 	blockChainMutex       sync.Mutex
 	headBlock             *pairBlockLen
 	pendingTransactions   []*data.KeyTransaction
-	blocksMap           map[string]*pairBlockLen
+	blocksMap             map[string]*pairBlockLen
+	PrivateKey            *peersterCrypto.PrivateKey
+	PublicKey             peersterCrypto.PublicKey
 }
 
 //NewGossiper is a function that returns a pointer
@@ -97,6 +101,8 @@ func NewGossiper(address, name string, neighbours []string, p int) *Gossiper {
 	replyHandler := hashtable.NewReplyHandler()
 	pendingTransactions := make([]*data.KeyTransaction, 0)
 	blockChain := make(map[string]*pairBlockLen)
+	priv := peersterCrypto.NewPrivateKey()
+	pub := priv.GetPublicKey()
 	return &Gossiper{
 		Name:                  name,
 		address:               udpaddr,
@@ -127,6 +133,8 @@ func NewGossiper(address, name string, neighbours []string, p int) *Gossiper {
 		ReplyHandler:          replyHandler,
 		pendingTransactions:   pendingTransactions,
 		blocksMap:             blockChain,
+		PrivateKey:            priv,
+		PublicKey:             pub,
 	}
 }
 
@@ -137,6 +145,7 @@ func (g *Gossiper) sendMessageToNeighbour(msg *data.GossipPacket, addr string) {
 	}
 	packetbyte, e := protobuf.Encode(msg)
 	if e != nil {
+		fmt.Println("Bjorn protobuf")
 		log.Fatal(e)
 	}
 	_, e = g.conn.WriteToUDP(packetbyte, udpaddr)
@@ -206,4 +215,10 @@ func (g *Gossiper) ClientMessageReceived(port int) {
 			g.SendPrivateMessageFromUser(temp.Dst, temp.Msg)
 		}
 	}
+}
+
+//SetPublicKey broadcasts the public key to the network.
+func (g *Gossiper) SetPublicKey() {
+	name := g.Name
+	g.PublishPublicKey(name, g.PublicKey.GetKey())
 }
