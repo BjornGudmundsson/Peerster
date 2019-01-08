@@ -8,7 +8,7 @@
 \usepackage[draft=false]{hyperref}
 
 \title{Decentralized Systems Engineering~--- Project write-up}
-\author{Björn Gudmundsson, Gerard Finol and Lukas Gelbmann}
+\author{Björn Guðmundsson, Gerard Finol and Lukas Gelbmann}
 \date{December~12, 2018}
 
 \begin{document}
@@ -22,7 +22,7 @@ In our group project, we will improve Peerster's file-sharing capabilities by ma
 
 \begin{itemize}
     \item To improve scalability and to distribute the workload among hosts, a file's chunks aren't all hosted by the same node, but rather by multiple nodes.
-    This is done by storing the chunks in a distributed hash table when a user want to share a file.
+    This is done by storing the chunks in a distributed hash table when a user wants to share a file.
     The hash table uses redundancy to prevent data loss in the case that a node shuts down.
     \item Chunks are transferred and stored by hosts in an encrypted manner to guarantee confidentiality.
     In addition, each chunk gets a cryptographic signature to ensure integrity.
