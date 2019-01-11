@@ -1,9 +1,9 @@
-./Peerster -UIPort=10000 -name=Bjorn -peers=127.0.0.1:6000,127.0.0.1:7000 -gossipAddr=127.0.0.1:5000 -rttimer=1
+./Peerster -UIPort=10000 -name=Bjorn -peers=127.0.0.1:6000,127.0.0.1:7000 -gossipAddr=127.0.0.1:5000 -rtimer=1
 
-./Peerster -UIPort=20000 -name=Lukas -peers=127.0.0.1:5000,127.0.0.1:7000,127.0.0.1:8000 -gossipAddr=127.0.0.1:6000 -rttimer=1
+./Peerster -UIPort=20000 -name=Lukas -peers=127.0.0.1:5000,127.0.0.1:7000,127.0.0.1:8000 -gossipAddr=127.0.0.1:6000 -rtimer=1
 
-./Peerster -UIPort=30000 -name=Sabrina -peers=127.0.0.1:5000 -gossipAddr=127.0.0.1:7000 -rttimer=1
+./Peerster -UIPort=30000 -name=Sabrina -peers=127.0.0.1:5000 -gossipAddr=127.0.0.1:7000 -rtimer=1
 
-./Peerster -UIPort=40000 -name=Manuel -peers=127.0.0.1:6000 -gossipAddr=127.0.0.1:8000 -rttimer=1
+./Peerster -UIPort=40000 -name=Manuel -peers=127.0.0.1:6000 -gossipAddr=127.0.0.1:8000 -rtimer=1
 
-./Peerster -UIPort=50000 -name=Sam -peers=127.0.0.1:6000 -gossipAddr=127.0.0.1:9000 -rttimer=1
+./Peerster -UIPort=50000 -name=Sam -peers=127.0.0.1:6000 -gossipAddr=127.0.0.1:9000 -rtimer=1

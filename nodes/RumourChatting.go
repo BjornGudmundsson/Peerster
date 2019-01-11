@@ -8,8 +8,8 @@ import (
 
 // RumourChatting sends route rumours (rumour chat messages of sorts) to help
 // update the routing table of every node.
-func (g *Gossiper) RumourChatting(rtTimer int) {
-	if rtTimer == 0 {
+func (g *Gossiper) RumourChatting(rTimer int) {
+	if rTimer == 0 {
 		return
 	}
 	for {
@@ -23,6 +23,6 @@ func (g *Gossiper) RumourChatting(rtTimer int) {
 		g.RumourHolder.AddRumour(*rm)
 		peer := data.GetRandomStringFromSlice(peers)
 		g.SendRumourMessage(rm, peer)
-		time.Sleep(time.Duration(rtTimer) * time.Second)
+		time.Sleep(time.Duration(rTimer) * time.Second)
 	}
 }
