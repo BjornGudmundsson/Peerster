@@ -117,11 +117,12 @@ This interface supports two basic functionalities:
  \item Get someones public key: In order to decrypt messages and confirm the source of a message the interface will offer the option to get the public key from the node's name.
 \end{itemize}
 
-We have already implemented a blockchain for homework 3.
+We had already implemented a blockchain for homework 3.
 In that one we had to suppose that all nodes were available from the beginning because we didn't have any way to request the old blocks that had been added to the chain.
 So, if a peer joined an already ruining network it would have to accept the first block received (because it didn't have any way to validate the block).
 
 For this part of our project, we added a protocol to be able to request a certain block.
 With that protocol, a peer is always able to reconstruct the longest chain and, therefore, can join a network later or have a failure and restart successfully.
+
 
 \end{document}
